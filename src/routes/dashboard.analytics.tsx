@@ -215,7 +215,7 @@ function AnalyticsLoading() {
 }
 
 export const Route = createFileRoute("/dashboard/analytics")({
-  head: () => ({ meta: [{ title: "Analitik — Sisolo Link" }] }),
+  head: () => ({ meta: [{ title: "Analitik | Sisolo Link" }] }),
   loader: async ({ context }) => {
     const user = context.user as { userId: string; role: string; name: string } | undefined;
     return await getAnalyticsServer({ data: user || null });

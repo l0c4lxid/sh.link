@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
-import crypto from "crypto";
+import { encryptPassword } from "@/lib/encryption";
 const createLinkServer = createServerFn({ method: "POST" })
   .inputValidator((input: { slug: string; dest: string; domain: string; expiresAt?: string; userId: string | null; password?: string }) => input)
   .handler(async ({ data: input }) => {
@@ -39,9 +39,9 @@ const createLinkServer = createServerFn({ method: "POST" })
       }
     }
 
-    let passwordHash: string | undefined = undefined;
+    let passwordEncrypted: string | undefined = undefined;
     if (input.password) {
-      passwordHash = crypto.createHash("sha256").update(input.password).digest("hex");
+      passwordEncrypted = encryptPassword(input.password);
     }
 
     const newLink = {
@@ -52,8 +52,8 @@ const createLinkServer = createServerFn({ method: "POST" })
       clicks: 0,
       createdAt: new Date(),
       expiresAt: expires,
-      userId: input.userId, // Hubungkan dengan ID user yang sedang login
-      passwordHash,
+      userId: input.userId,
+      passwordEncrypted,
       clickStats: {
         total: 0,
         lastDate: new Date().toISOString().slice(0, 10),

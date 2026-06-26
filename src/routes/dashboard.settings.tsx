@@ -82,7 +82,7 @@ const changePasswordServer = createServerFn({ method: "POST" })
   });
 
 export const Route = createFileRoute("/dashboard/settings")({
-  head: () => ({ meta: [{ title: "Pengaturan — Sisolo Link" }] }),
+  head: () => ({ meta: [{ title: "Pengaturan | Sisolo Link" }] }),
   component: Settings,
 });
 

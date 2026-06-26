@@ -68,7 +68,7 @@ const getDashboardStatsServer = createServerFn({ method: "GET" })
   });
 
 export const Route = createFileRoute("/dashboard/")({
-  head: () => ({ meta: [{ title: "Ikhtisar — Sisolo Link" }] }),
+  head: () => ({ meta: [{ title: "Ikhtisar | Sisolo Link" }] }),
   loader: async ({ context }) => {
     // Ambil context user hasil dari layout route dashboard.tsx
     const user = context.user as { userId: string; role: string; name: string } | undefined;

@@ -4,6 +4,7 @@ import { ArrowUpRight, BarChart3, ExternalLink, Globe, Shield } from "lucide-rea
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import clientPromise from "@/lib/mongodb";
+import { decryptPassword } from "@/lib/encryption";
 import crypto from "crypto";
 import { toast } from "sonner";
 
@@ -24,7 +25,7 @@ const getLinkBySlugServer = createServerFn({ method: "GET" })
       slug: link.slug,
       dest: link.dest,
       domain: link.domain,
-      hasPassword: !!link.passwordHash,
+      hasPassword: !!(link.passwordEncrypted || link.passwordHash),
       createdAt: link.createdAt instanceof Date ? link.createdAt.toISOString().slice(0, 10) : String(link.createdAt || ""),
     };
   });
@@ -37,13 +38,19 @@ const verifyLinkPasswordServer = createServerFn({ method: "POST" })
     const link = await db.collection("links").findOne({ slug: slug.toLowerCase() });
     if (!link) return { success: false, error: "Tautan tidak ditemukan" };
     
-    if (!link.passwordHash) return { success: true };
-    
-    const hash = crypto.createHash("sha256").update(password || "").digest("hex");
-    if (hash === link.passwordHash) {
-      return { success: true };
+    if (link.passwordEncrypted) {
+      const stored = decryptPassword(link.passwordEncrypted);
+      if (password === stored) return { success: true };
+      return { success: false, error: "Kata sandi salah!" };
     }
-    return { success: false, error: "Kata sandi salah!" };
+
+    if (link.passwordHash) {
+      const hash = crypto.createHash("sha256").update(password || "").digest("hex");
+      if (hash === link.passwordHash) return { success: true };
+      return { success: false, error: "Kata sandi salah!" };
+    }
+
+    return { success: true };
   });
 
 const recordClickServer = createServerFn({ method: "POST" })
@@ -123,7 +130,7 @@ const recordClickServer = createServerFn({ method: "POST" })
 
 export const Route = createFileRoute("/r/$slug")({
   head: ({ params }) => ({
-    meta: [{ title: `Mengalihkan /${params.slug} — Sisolo Link` }],
+    meta: [{ title: `Mengalihkan /${params.slug} | Sisolo Link` }],
   }),
   component: RedirectPage,
   notFoundComponent: NotFoundPage,

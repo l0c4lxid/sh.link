@@ -127,7 +127,7 @@ export const Route = createFileRoute("/auth")({
   },
   head: () => ({
     meta: [
-      { title: "Autentikasi — Sisolo Link" },
+      { title: "Autentikasi | Sisolo Link" },
       { name: "description", content: "Masuk atau daftar ke konsol Sisolo Link." },
     ],
   }),

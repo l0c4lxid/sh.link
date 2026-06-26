@@ -44,9 +44,9 @@ const createPublicLinkServer = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sisolo Link — Pemendek URL Berkinerja Tinggi" },
+      { title: "Sisolo Link | Pemendek URL Berkinerja Tinggi" },
       { name: "description", content: "Sederhanakan tautan panjang Anda. Kelola domain kustom, pantau klik, dan bagikan dengan presisi." },
-      { property: "og:title", content: "Sisolo Link — Pemendek URL Berkinerja Tinggi" },
+      { property: "og:title", content: "Sisolo Link | Pemendek URL Berkinerja Tinggi" },
       { property: "og:description", content: "Platform pemendek tautan modern dengan domain kustom & analitik klik lengkap." },
     ],
   }),

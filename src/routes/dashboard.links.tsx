@@ -62,7 +62,7 @@ const getLinksServer = createServerFn({ method: "GET" })
         status: doc.status || "active",
         createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString().slice(0, 10) : String(doc.createdAt || ""),
         creator: creatorName,
-        hasPassword: !!doc.passwordHash,
+        hasPassword: !!(doc.passwordEncrypted || doc.passwordHash),
       };
     });
   });
@@ -163,7 +163,7 @@ function LinksLoading() {
 }
 
 export const Route = createFileRoute("/dashboard/links")({
-  head: () => ({ meta: [{ title: "Tautan Saya — Sisolo Link" }] }),
+  head: () => ({ meta: [{ title: "Tautan Saya | Sisolo Link" }] }),
   validateSearch: (search: Record<string, unknown>): { q?: string } => {
     return {
       q: (search.q as string) || undefined,
@@ -183,7 +183,7 @@ function Links() {
   const { links, searchVal } = Route.useLoaderData();
   const navigate = Route.useNavigate();
   const [search, setSearch] = useState(searchVal);
-  const [qrLink, setQrLink] = useState<{ slug: string; dest: string } | null>(null);
+  const [qrLink, setQrLink] = useState<{ slug: string; dest: string; hasPassword?: boolean } | null>(null);
   const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
   const [editLink, setEditLink] = useState<{ slug: string; dest: string; hasPassword?: boolean } | null>(null);
 
@@ -273,7 +273,7 @@ function Links() {
                   </td>
                   <td className="p-3">
                     <div className="flex gap-3 text-[9px] font-bold uppercase tracking-widest">
-                      <button onClick={() => setQrLink({ slug: l.slug, dest: l.dest })} className="hover:text-primary cursor-pointer">Salin & QR</button>
+                      <button onClick={() => setQrLink({ slug: l.slug, dest: l.dest, hasPassword: l.hasPassword })} className="hover:text-primary cursor-pointer">Salin & QR</button>
                       <button onClick={() => setEditLink({ slug: l.slug, dest: l.dest, hasPassword: l.hasPassword })} className="hover:text-primary cursor-pointer">Ubah</button>
                       <button onClick={() => setDeleteSlug(l.slug)} className="text-destructive hover:text-destructive/85 cursor-pointer">Hapus</button>
                     </div>
@@ -316,7 +316,7 @@ function Links() {
                 </div>
               </div>
               <div className="mt-3 flex gap-3">
-                <button onClick={() => setQrLink({ slug: l.slug, dest: l.dest })} className="font-mono text-[9px] font-bold uppercase tracking-widest hover:text-primary cursor-pointer">Salin & QR</button>
+                <button onClick={() => setQrLink({ slug: l.slug, dest: l.dest, hasPassword: l.hasPassword })} className="font-mono text-[9px] font-bold uppercase tracking-widest hover:text-primary cursor-pointer">Salin & QR</button>
                 <button onClick={() => setEditLink({ slug: l.slug, dest: l.dest, hasPassword: l.hasPassword })} className="font-mono text-[9px] font-bold uppercase tracking-widest hover:text-primary cursor-pointer">Ubah</button>
                 <button onClick={() => setDeleteSlug(l.slug)} className="font-mono text-[9px] font-bold uppercase tracking-widest text-destructive hover:text-destructive/85 cursor-pointer">Hapus</button>
               </div>

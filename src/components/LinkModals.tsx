@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { X, Check } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
 import { toast } from "sonner";
 import QRCode from "qrcode";
+import { encryptPassword, decryptPassword } from "@/lib/encryption";
 import {
   Dialog,
   DialogContent,
@@ -42,10 +43,9 @@ export const updateLinkServer = createServerFn({ method: "POST" })
     }
 
     if (input.removePassword) {
-      updateData.passwordHash = null;
+      updateData.passwordEncrypted = null;
     } else if (input.password) {
-      const crypto = await import("crypto");
-      updateData.passwordHash = crypto.createHash("sha256").update(input.password).digest("hex");
+      updateData.passwordEncrypted = encryptPassword(input.password);
     }
 
     await db.collection("links").updateOne(
@@ -56,16 +56,36 @@ export const updateLinkServer = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+export const getLinkPasswordServer = createServerFn({ method: "GET" })
+  .inputValidator((slug: string) => slug)
+  .handler(async ({ data: slug }) => {
+    const client = await clientPromise;
+    const db = client.db();
+    const link = await db.collection("links").findOne({ slug: slug.toLowerCase() });
+    if (!link || !link.passwordEncrypted) return null;
+    return decryptPassword(link.passwordEncrypted);
+  });
+
 export function QRDetailModal({
   link,
   onClose,
 }: {
-  link: { slug: string; dest: string } | null;
+  link: { slug: string; dest: string; hasPassword?: boolean } | null;
   onClose: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [pwdValue, setPwdValue] = useState<string | null>(null);
   const fullUrl = link ? `${window.location.origin}/r/${link.slug}` : "";
+
+  useEffect(() => {
+    if (link?.hasPassword && link.slug) {
+      getLinkPasswordServer({ data: link.slug }).then(setPwdValue);
+    } else {
+      setPwdValue(null);
+    }
+  }, [link]);
 
   const setCanvasRef = useCallback((node: HTMLCanvasElement | null) => {
     canvasRef.current = node;
@@ -147,6 +167,27 @@ export function QRDetailModal({
               </button>
             </div>
           </div>
+          {link?.hasPassword && pwdValue !== null && (
+            <div className="w-full space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Proteksi Kata Sandi</label>
+              <div className="relative">
+                <input
+                  type={showPwd ? "text" : "password"}
+                  readOnly
+                  value={pwdValue}
+                  className="w-full border border-border bg-muted px-3 py-2 text-xs font-mono text-foreground select-all outline-none pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPwd ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex gap-2 border-t border-border pt-4">
           <button
@@ -220,6 +261,7 @@ export function EditLinkModal({
   const [expiresAt, setExpiresAt] = useState("");
   const [pwd, setPwd] = useState(false);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -228,6 +270,11 @@ export function EditLinkModal({
       setExpiresAt("");
       setPwd(!!link.hasPassword);
       setPassword("");
+      if (link.hasPassword) {
+        getLinkPasswordServer({ data: link.slug }).then((p) => {
+          if (p) setPassword(p);
+        });
+      }
     }
   }, [link]);
 
@@ -263,14 +310,7 @@ export function EditLinkModal({
 
   return (
     <Dialog open={!!link} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="border-border bg-background font-mono sm:max-w-md relative">
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 focus:outline-none cursor-pointer"
-          aria-label="Close"
-        >
-          <X className="size-4" />
-        </button>
+      <DialogContent className="border-border bg-background font-mono sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold uppercase tracking-tight">Ubah Tautan</DialogTitle>
           <DialogDescription className="text-[10px] text-muted-foreground uppercase">
@@ -317,14 +357,24 @@ export function EditLinkModal({
 
           {pwd && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase text-muted-foreground">Kata Sandi Baru (kosongkan jika tidak diubah)</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan kata sandi baru"
-                className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none"
-              />
+              <label className="text-[10px] font-bold uppercase text-muted-foreground">Kata Sandi</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan kata sandi baru"
+                  className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
           )}
 

@@ -37,7 +37,7 @@ const getAdminStatsServer = createServerFn({ method: "GET" })
   });
 
 export const Route = createFileRoute("/dashboard/admin")({
-  head: () => ({ meta: [{ title: "Konsol Admin — Sisolo Link" }] }),
+  head: () => ({ meta: [{ title: "Konsol Admin | Sisolo Link" }] }),
   beforeLoad: ({ context }) => {
     const user = context.user as { role: string } | undefined;
     if (user?.role !== "admin") {

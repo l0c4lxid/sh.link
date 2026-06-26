@@ -148,7 +148,7 @@ function DomainsLoading() {
 }
 
 export const Route = createFileRoute("/dashboard/domains")({
-  head: () => ({ meta: [{ title: "Domain — Sisolo Link" }] }),
+  head: () => ({ meta: [{ title: "Domain | Sisolo Link" }] }),
   loader: async ({ context }) => {
     const user = context.user as { userId: string; role: string; name: string } | undefined;
     return await getDomainsServer({ data: user || null });
