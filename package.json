@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "NITRO_PRESET=node-server vite dev",
-    "build": "NITRO_PRESET=node-server vite build",
-    "build:dev": "NITRO_PRESET=node-server vite build --mode development",
+    "build": "vite build",
+    "build:dev": "vite build --mode development",
     "preview": "NITRO_PRESET=node-server vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
