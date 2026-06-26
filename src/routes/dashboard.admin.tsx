@@ -37,7 +37,7 @@ const getAdminStatsServer = createServerFn({ method: "GET" })
   });
 
 export const Route = createFileRoute("/dashboard/admin")({
-  head: () => ({ meta: [{ title: "Konsol Admin — sisolo.my.id" }] }),
+  head: () => ({ meta: [{ title: "Konsol Admin — Sisolo Link" }] }),
   beforeLoad: ({ context }) => {
     const user = context.user as { role: string } | undefined;
     if (user?.role !== "admin") {
@@ -138,7 +138,7 @@ function Admin() {
         {tab === "domains" && (
           <div className="border border-border bg-foreground p-5 text-background">
             <p className="font-mono text-xs">/admin/domain — {domainsCount} domain aktif terverifikasi</p>
-            <p className="mt-2 font-mono text-[10px] text-background/60">Tambah, hapus, dan tinjau DNS dari domain sisolo.my.id.</p>
+            <p className="mt-2 font-mono text-[10px] text-background/60">Tambah, hapus, dan tinjau DNS dari domain utama.</p>
           </div>
         )}
       </div>

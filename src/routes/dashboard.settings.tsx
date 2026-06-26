@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/dashboard/settings")({
-  head: () => ({ meta: [{ title: "Pengaturan — sisolo.my.id" }] }),
+  head: () => ({ meta: [{ title: "Pengaturan — Sisolo Link" }] }),
   component: Settings,
 });
 
@@ -22,7 +22,7 @@ function Settings() {
           </Section>
 
           <Section title="Ruang Kerja">
-            <Field label="Nama Ruang Kerja"><input defaultValue="sisolo.my.id" className="input" /></Field>
+            <Field label="Nama Ruang Kerja"><input defaultValue="Sisolo Link" className="input" /></Field>
             <Field label="Domain Bawaan">
               <select className="input"><option>sisolo.my.id</option></select>
             </Field>

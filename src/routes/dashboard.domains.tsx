@@ -116,7 +116,7 @@ const setPrimaryDomainServer = createServerFn({ method: "POST" })
   });
 
 export const Route = createFileRoute("/dashboard/domains")({
-  head: () => ({ meta: [{ title: "Domain — sisolo.my.id" }] }),
+  head: () => ({ meta: [{ title: "Domain — Sisolo Link" }] }),
   loader: async ({ context }) => {
     const user = context.user as { userId: string; role: string; name: string } | undefined;
     return await getDomainsServer({ data: user || null });
@@ -242,7 +242,7 @@ function Domains() {
           <DialogHeader>
             <DialogTitle className="text-lg font-bold uppercase tracking-tight">Tambah Domain Kustom</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground uppercase">
-              Hubungkan nama domain Anda sendiri ke sisolo.my.id
+              Hubungkan nama domain Anda sendiri ke Sisolo Link
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAdd} className="space-y-4 py-4">

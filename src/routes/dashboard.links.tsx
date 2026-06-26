@@ -55,14 +55,31 @@ const getLinksServer = createServerFn({ method: "GET" })
     }
     
     const docs = await db.collection("links").find(query).sort({ createdAt: -1 }).toArray();
-    return docs.map(doc => ({
-      slug: doc.slug,
-      dest: doc.dest,
-      domain: doc.domain,
-      clicks: doc.clicks || 0,
-      status: doc.status || "active",
-      createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString().slice(0, 10) : String(doc.createdAt || ""),
-    }));
+    
+    // Fetch users for mapping creators in memory
+    const allUsers = await db.collection("users").find({}).toArray();
+    const userMap: Record<string, { name: string; role: string }> = {};
+    allUsers.forEach(u => {
+      userMap[u._id.toString()] = { name: u.name, role: u.role };
+    });
+
+    return docs.map(doc => {
+      const creatorId = doc.userId ? doc.userId.toString() : null;
+      let creatorName = "Pengguna Publik";
+      if (creatorId && userMap[creatorId]) {
+        const u = userMap[creatorId];
+        creatorName = u.role === "admin" ? `Admin: ${u.name}` : `User: ${u.name}`;
+      }
+      return {
+        slug: doc.slug,
+        dest: doc.dest,
+        domain: doc.domain,
+        clicks: doc.clicks || 0,
+        status: doc.status || "active",
+        createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString().slice(0, 10) : String(doc.createdAt || ""),
+        creator: creatorName,
+      };
+    });
   });
 const deleteLinkServer = createServerFn({ method: "POST" })
   .inputValidator((slug: string) => slug)
@@ -74,7 +91,7 @@ const deleteLinkServer = createServerFn({ method: "POST" })
   });
 
 export const Route = createFileRoute("/dashboard/links")({
-  head: () => ({ meta: [{ title: "Tautan Saya — sisolo.my.id" }] }),
+  head: () => ({ meta: [{ title: "Tautan Saya — Sisolo Link" }] }),
   validateSearch: (search: Record<string, unknown>): { q?: string } => {
     return {
       q: (search.q as string) || undefined,
@@ -148,6 +165,7 @@ function Links() {
                 <th className="p-3 font-bold">Slug</th>
                 <th className="p-3 font-bold">Tujuan</th>
                 <th className="p-3 font-bold">Domain</th>
+                <th className="p-3 font-bold">Pembuat</th>
                 <th className="p-3 text-right font-bold">Klik</th>
                 <th className="p-3 font-bold">Status</th>
                 <th className="p-3 font-bold">Tindakan</th>
@@ -159,6 +177,7 @@ function Links() {
                   <td className="p-3 font-bold text-primary">/{l.slug}</td>
                   <td className="p-3 text-muted-foreground max-w-xs truncate">{l.dest}</td>
                   <td className="p-3 text-muted-foreground">{l.domain}</td>
+                  <td className="p-3 text-muted-foreground font-mono text-[10px]">{l.creator}</td>
                   <td className="p-3 text-right font-bold">{l.clicks.toLocaleString()}</td>
                   <td className="p-3">
                     {l.status === "active" ? (
@@ -178,7 +197,7 @@ function Links() {
               ))}
               {links.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground font-mono">
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground font-mono">
                     Tidak ada tautan yang cocok dengan pencarian Anda.
                   </td>
                 </tr>
@@ -202,7 +221,7 @@ function Links() {
                     )}
                   </div>
                   <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">{l.dest}</p>
-                  <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">via {l.domain}</p>
+                  <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">via {l.domain} · Pembuat: {l.creator}</p>
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-sm font-bold tracking-tighter">{l.clicks.toLocaleString()}</div>

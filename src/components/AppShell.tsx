@@ -76,7 +76,7 @@ export function AppShell({ children, title, user: userProp }: { children: ReactN
             <Menu className="size-5" />
           </button>
           <Link to="/" className="font-mono text-sm font-bold tracking-tighter">
-            SISOLO<span className="text-primary">.MY.ID</span>
+            SISOLO<span className="text-primary"> LINK</span>
           </Link>
         </div>
         <div className="flex items-center gap-3">
@@ -104,7 +104,7 @@ export function AppShell({ children, title, user: userProp }: { children: ReactN
             <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
             <aside className="relative h-full w-72 max-w-[85%] bg-background animate-slide-up">
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <span className="font-mono text-sm font-bold tracking-tighter">SISOLO.MY.ID</span>
+                <span className="font-mono text-sm font-bold tracking-tighter">SISOLO LINK</span>
                 <button onClick={() => setOpen(false)} aria-label="Close menu">
                   <X className="size-5" />
                 </button>
@@ -188,7 +188,7 @@ function SidebarContent({
     <div className="flex h-full flex-col">
       <div className="border-b border-border p-5">
         <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ruang Kerja</div>
-        <div className="mt-1 font-mono text-sm font-bold">sisolo.my.id</div>
+        <div className="mt-1 font-mono text-sm font-bold">Sisolo Link</div>
       </div>
       <nav className="flex-1 px-3 py-4">
         {filteredNav.map((item) => {

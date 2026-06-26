@@ -41,9 +41,9 @@ const createPublicLinkServer = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "sisolo.my.id — Pemendek URL Berkinerja Tinggi" },
+      { title: "Sisolo Link — Pemendek URL Berkinerja Tinggi" },
       { name: "description", content: "Sederhanakan tautan panjang Anda. Kelola domain kustom, pantau klik, dan bagikan dengan presisi." },
-      { property: "og:title", content: "sisolo.my.id — Pemendek URL Berkinerja Tinggi" },
+      { property: "og:title", content: "Sisolo Link — Pemendek URL Berkinerja Tinggi" },
       { property: "og:description", content: "Platform pemendek tautan modern dengan domain kustom & analitik klik lengkap." },
     ],
   }),
@@ -87,7 +87,7 @@ function Landing() {
       <header className="border-b border-border bg-background/95 px-5 py-4 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="font-mono text-sm font-bold tracking-tighter">
-            SISOLO<span className="text-primary">.MY.ID</span>
+            SISOLO<span className="text-primary"> LINK</span>
           </div>
           <div className="hidden items-center gap-6 md:flex">
             <a href="#features" className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground">Fitur</a>
@@ -205,7 +205,7 @@ function Landing() {
 
       <footer className="border-t border-border px-5 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground sm:flex-row sm:items-center">
-          <span>© 2026 sisolo.my.id / Semua Sistem Normal</span>
+          <span>© 2026 Sisolo Link / Semua Sistem Normal</span>
           <span>v2.4.1 / EDGE</span>
         </div>
       </footer>

@@ -17,7 +17,7 @@ const getSlugsServer = createServerFn({ method: "GET" })
   });
 
 export const Route = createFileRoute("/dashboard/qr")({
-  head: () => ({ meta: [{ title: "Kode QR — sisolo.my.id" }] }),
+  head: () => ({ meta: [{ title: "Kode QR — Sisolo Link" }] }),
   loader: async ({ context }) => {
     const user = context.user as { userId: string; role: string; name: string } | undefined;
     return await getSlugsServer({ data: user || null });

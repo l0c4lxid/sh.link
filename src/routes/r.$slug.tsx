@@ -97,7 +97,7 @@ const recordClickServer = createServerFn({ method: "POST" })
 
 export const Route = createFileRoute("/r/$slug")({
   head: ({ params }) => ({
-    meta: [{ title: `Mengalihkan /${params.slug} — sisolo.my.id` }],
+    meta: [{ title: `Mengalihkan /${params.slug} — Sisolo Link` }],
   }),
   component: RedirectPage,
   notFoundComponent: NotFoundPage,
@@ -212,7 +212,7 @@ function RedirectPage() {
         <div className="mt-8 flex items-start gap-3 border border-border bg-secondary p-4">
           <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
-            Verifikasi URL tujuan di atas sebelum melanjutkan. sisolo.my.id tidak mendukung konten pihak ketiga.
+            Verifikasi URL tujuan di atas sebelum melanjutkan. Sisolo Link tidak mendukung konten pihak ketiga.
             Statistik klik dilacak secara aman pada klaster basis data MongoDB.
           </p>
         </div>
