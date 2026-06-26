@@ -1,6 +1,6 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Plus, Globe, Settings, Server, Trash2, CheckCircle2 } from "lucide-react";
+import { Plus, Globe, Trash2 } from "lucide-react";
 import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
 import { useState } from "react";
@@ -134,8 +134,6 @@ function Domains() {
   const [loading, setLoading] = useState(false);
 
   const [deleteDomain, setDeleteDomain] = useState<string | null>(null);
-  const [settingsDomain, setSettingsDomain] = useState<string | null>(null);
-  const [dnsDomain, setDnsDomain] = useState<string | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,12 +217,6 @@ function Domains() {
                     Jadikan Utama
                   </button>
                 )}
-                <button onClick={() => setSettingsDomain(d.name)} className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1">
-                  <Settings className="size-3" /> Pengaturan
-                </button>
-                <button onClick={() => setDnsDomain(d.name)} className="text-muted-foreground hover:text-foreground cursor-pointer flex items-center gap-1">
-                  <Server className="size-3" /> DNS
-                </button>
                 {!d.isSystem && (
                   <button onClick={() => setDeleteDomain(d.name)} className="ml-auto text-destructive hover:opacity-80 cursor-pointer flex items-center gap-1">
                     <Trash2 className="size-3" /> Hapus
@@ -277,82 +269,7 @@ function Domains() {
         </DialogContent>
       </Dialog>
 
-      {/* Settings Info Dialog */}
-      <Dialog open={!!settingsDomain} onOpenChange={(open) => !open && setSettingsDomain(null)}>
-        <DialogContent className="border-border bg-background font-mono sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold uppercase tracking-tight">Pengaturan Domain</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground uppercase">
-              Informasi Konfigurasi untuk {settingsDomain}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4 text-xs leading-relaxed">
-            <p>
-              Domain <span className="font-bold text-primary">{settingsDomain}</span> telah berhasil terverifikasi pada klaster MongoDB kami.
-            </p>
-            <div className="border border-border bg-muted p-3 space-y-2">
-              <div className="flex items-center gap-2 text-success font-bold">
-                <CheckCircle2 className="size-4" /> SSL Terkonfigurasi
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Sertifikat SSL Let's Encrypt telah diterbitkan secara otomatis dan aktif untuk enkripsi HTTPS.
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-end border-t border-border pt-4">
-            <button
-              onClick={() => setSettingsDomain(null)}
-              className="bg-primary px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90 cursor-pointer"
-            >
-              Tutup
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* DNS Configuration Dialog */}
-      <Dialog open={!!dnsDomain} onOpenChange={(open) => !open && setDnsDomain(null)}>
-        <DialogContent className="border-border bg-background font-mono sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold uppercase tracking-tight">Konfigurasi DNS Vercel</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground uppercase">
-              Petunjuk DNS untuk {dnsDomain}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4 text-xs leading-relaxed">
-            <p>Untuk mengaktifkan pengalihan tautan pada domain Anda, tambahkan entri DNS berikut di registrar Anda:</p>
-            <div className="border border-border bg-muted p-3 space-y-3 font-mono text-[10px]">
-              <div>
-                <span className="font-bold text-muted-foreground uppercase block">Record A (Untuk Root Domain)</span>
-                <div className="grid grid-cols-[60px_1fr] mt-1">
-                  <span>Nama:</span> <span className="font-bold text-foreground">@</span>
-                  <span>Tipe:</span> <span className="font-bold text-foreground">A</span>
-                  <span>Value:</span> <span className="font-bold text-primary select-all">76.76.21.21</span>
-                </div>
-              </div>
-              <div className="border-t border-border pt-2">
-                <span className="font-bold text-muted-foreground uppercase block">Record CNAME (Untuk Subdomain)</span>
-                <div className="grid grid-cols-[60px_1fr] mt-1">
-                  <span>Nama:</span> <span className="font-bold text-foreground">tautan (atau custom)</span>
-                  <span>Tipe:</span> <span className="font-bold text-foreground">CNAME</span>
-                  <span>Value:</span> <span className="font-bold text-primary select-all">cname.vercel-dns.com</span>
-                </div>
-              </div>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Catatan: Penyebaran DNS (propagation) dapat memakan waktu hingga 24 jam tergantung provider Anda.
-            </p>
-          </div>
-          <div className="flex justify-end border-t border-border pt-4">
-            <button
-              onClick={() => setDnsDomain(null)}
-              className="bg-primary px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90 cursor-pointer"
-            >
-              Tutup
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Alert Dialog */}
       <AlertDialog open={!!deleteDomain} onOpenChange={(open) => !open && setDeleteDomain(null)}>
