@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { setCookie, deleteCookie } from "@tanstack/react-start/server";
@@ -6,6 +6,7 @@ import crypto from "crypto";
 import clientPromise from "@/lib/mongodb";
 import { signJwt } from "@/lib/jwt";
 import { toast } from "sonner";
+import { getUserFromSession } from "@/lib/session";
 
 export const authenticateServer = createServerFn({ method: "POST" })
   .inputValidator((input: { email: string; password?: string }) => input)
@@ -110,7 +111,20 @@ export const logoutServer = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+const checkSessionServer = createServerFn({ method: "GET" })
+  .handler(async () => {
+    return getUserFromSession();
+  });
+
 export const Route = createFileRoute("/auth")({
+  beforeLoad: async () => {
+    const user = await checkSessionServer();
+    if (user) {
+      throw redirect({
+        to: "/dashboard",
+      });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Autentikasi — Sisolo Link" },

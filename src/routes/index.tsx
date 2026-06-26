@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BarChart3, Globe, Lock, QrCode, Zap } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
 import { toast } from "sonner";
@@ -17,6 +17,9 @@ const createPublicLinkServer = createServerFn({ method: "POST" })
       destination = `https://${destination}`;
     }
 
+    const maxExpiration = new Date();
+    maxExpiration.setDate(maxExpiration.getDate() + 30);
+
     const newLink = {
       slug,
       dest: destination,
@@ -24,7 +27,7 @@ const createPublicLinkServer = createServerFn({ method: "POST" })
       status: "active",
       clicks: 0,
       createdAt: new Date(),
-      expiresAt: null,
+      expiresAt: maxExpiration,
       userId: null,
       clickStats: {
         total: 0,
@@ -54,6 +57,24 @@ function Landing() {
   const [dest, setDest] = useState("");
   const [shortUrl, setShortUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<Array<{ slug: string; shortUrl: string; dest: string; createdAt: number }>>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("public_links");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const now = Date.now();
+          const valid = parsed.filter((item: any) => now - item.createdAt < 24 * 60 * 60 * 1000);
+          setHistory(valid);
+          localStorage.setItem("public_links", JSON.stringify(valid));
+        }
+      }
+    } catch (e) {
+      console.error("Gagal memuat riwayat link lokal", e);
+    }
+  }, []);
 
   const handleShorten = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +86,19 @@ function Landing() {
     try {
       const res = await createPublicLinkServer({ data: { dest } });
       if (res.success) {
-        setShortUrl(`${window.location.origin}/r/${res.slug}`);
+        const newShortUrl = `${window.location.origin}/r/${res.slug}`;
+        setShortUrl(newShortUrl);
+        
+        const newLink = {
+          slug: res.slug,
+          shortUrl: newShortUrl,
+          dest: dest.trim(),
+          createdAt: Date.now()
+        };
+        const updated = [newLink, ...history].slice(0, 10);
+        setHistory(updated);
+        localStorage.setItem("public_links", JSON.stringify(updated));
+
         setDest("");
         toast.success("Tautan singkat berhasil dibuat!");
       }
@@ -150,6 +183,41 @@ function Landing() {
                 >
                   Salin
                 </button>
+              </div>
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className="mt-8 border border-border text-left">
+              <div className="border-b border-border bg-muted px-4 py-2">
+                <h3 className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  /Riwayat Tautan Anda (24 Jam Terakhir)
+                </h3>
+              </div>
+              <div className="divide-y divide-border">
+                {history.map((h) => (
+                  <div key={h.slug} className="flex flex-col gap-1.5 p-4 sm:flex-row sm:items-center sm:justify-between bg-background">
+                    <div className="min-w-0 flex-1">
+                      <div>
+                        <a href={h.shortUrl} target="_blank" rel="noreferrer" className="font-mono text-xs font-bold text-primary hover:underline break-all">
+                          {h.shortUrl}
+                        </a>
+                      </div>
+                      <div className="mt-1 font-mono text-[9px] text-muted-foreground truncate">
+                        Tujuan: {h.dest}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(h.shortUrl);
+                        toast.success("Tautan disalin!");
+                      }}
+                      className="mt-2 shrink-0 border border-border bg-background px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest hover:bg-muted active:bg-primary active:text-primary-foreground sm:mt-0 cursor-pointer"
+                    >
+                      Salin
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           )}

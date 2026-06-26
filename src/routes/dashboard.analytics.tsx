@@ -77,38 +77,84 @@ const getAnalyticsServer = createServerFn({ method: "GET" })
       change7Days = 100;
     }
     
-    const hasClicks = totalClicks > 0;
-    const countries: [string, string][] = hasClicks
-      ? [
-          ["ID Indonesia", "75%"],
-          ["SG Singapura", "12%"],
-          ["US Amerika Serikat", "7%"],
-          ["MY Malaysia", "4%"],
-          ["JP Jepang", "2%"],
-        ]
-      : [
-          ["ID Indonesia", "0%"],
-          ["SG Singapura", "0%"],
-          ["US Amerika Serikat", "0%"],
-          ["MY Malaysia", "0%"],
-          ["JP Jepang", "0%"],
-        ];
-        
-    const referrers: [string, string][] = hasClicks
-      ? [
-          ["instagram.com", "40%"],
-          ["twitter.com", "25%"],
-          ["langsung", "15%"],
-          ["whatsapp", "14%"],
-          ["google.com", "6%"],
-        ]
-      : [
-          ["instagram.com", "0%"],
-          ["twitter.com", "0%"],
-          ["langsung", "0%"],
-          ["whatsapp", "0%"],
-          ["google.com", "0%"],
-        ];
+    const aggregatedCountries: { [key: string]: number } = {};
+    const aggregatedReferrers: { [key: string]: number } = {};
+    
+    allLinks.forEach((link) => {
+      const stats = link.clickStats || {};
+      const linkCountries = stats.countries || {};
+      const linkReferrers = stats.referrers || {};
+      
+      Object.entries(linkCountries).forEach(([country, count]) => {
+        aggregatedCountries[country] = (aggregatedCountries[country] || 0) + Number(count);
+      });
+      Object.entries(linkReferrers).forEach(([referrer, count]) => {
+        aggregatedReferrers[referrer] = (aggregatedReferrers[referrer] || 0) + Number(count);
+      });
+    });
+    
+    const cleanReferrer = (ref: string) => {
+      const r = ref.toLowerCase();
+      if (r.includes("instagram")) return "Instagram";
+      if (r.includes("facebook") || r.includes("fb.me")) return "Facebook";
+      if (r.includes("twitter") || r.includes("t.co") || r.includes("x.com")) return "Twitter / X";
+      if (r.includes("whatsapp") || r.includes("wa.me")) return "WhatsApp";
+      if (r.includes("linkedin")) return "LinkedIn";
+      if (r.includes("google") || r.includes("android-app://com.google.android.googlequicksearchbox")) return "Google Search";
+      if (r === "langsung" || r === "direct") return "Direct / Langsung";
+      return ref;
+    };
+
+    const cleanedReferrers: { [key: string]: number } = {};
+    Object.entries(aggregatedReferrers).forEach(([ref, val]) => {
+      const clean = cleanReferrer(ref);
+      cleanedReferrers[clean] = (cleanedReferrers[clean] || 0) + val;
+    });
+
+    const totalCountryClicks = Object.values(aggregatedCountries).reduce((sum, c) => sum + c, 0);
+    const countriesList = Object.entries(aggregatedCountries)
+      .sort((a, b) => b[1] - a[1])
+      .map(([country, count]) => {
+        const percentage = totalCountryClicks > 0 ? ((count / totalCountryClicks) * 100).toFixed(0) : "0";
+        const countryNames: { [key: string]: string } = {
+          ID: "ID Indonesia",
+          SG: "SG Singapura",
+          US: "US Amerika Serikat",
+          MY: "MY Malaysia",
+          JP: "JP Jepang",
+          GB: "GB Inggris",
+          DE: "DE Jerman",
+          FR: "FR Prancis",
+          AU: "AU Australia",
+          CN: "CN Tiongkok"
+        };
+        const displayName = countryNames[country.toUpperCase()] || `${country.toUpperCase()} Lainnya`;
+        return [displayName, `${percentage}%`] as [string, string];
+      });
+
+    const totalReferrerClicks = Object.values(cleanedReferrers).reduce((sum, r) => sum + r, 0);
+    const referrersList = Object.entries(cleanedReferrers)
+      .sort((a, b) => b[1] - a[1])
+      .map(([referrer, count]) => {
+        const percentage = totalReferrerClicks > 0 ? ((count / totalReferrerClicks) * 100).toFixed(0) : "0";
+        return [referrer, `${percentage}%`] as [string, string];
+      });
+
+    const countries = countriesList.length > 0 ? countriesList.slice(0, 5) : [
+      ["ID Indonesia", "0%"],
+      ["SG Singapura", "0%"],
+      ["US Amerika Serikat", "0%"],
+      ["MY Malaysia", "0%"],
+      ["JP Jepang", "0%"]
+    ];
+
+    const referrers = referrersList.length > 0 ? referrersList.slice(0, 5) : [
+      ["Instagram", "0%"],
+      ["Twitter / X", "0%"],
+      ["Direct / Langsung", "0%"],
+      ["WhatsApp", "0%"],
+      ["Google Search", "0%"]
+    ];
         
     return {
       totalClicks,
@@ -118,8 +164,8 @@ const getAnalyticsServer = createServerFn({ method: "GET" })
       changeTodayStr: changeToday >= 0 ? `+${changeToday.toFixed(1)}%` : `${changeToday.toFixed(1)}%`,
       change7DaysStr: change7Days >= 0 ? `+${change7Days.toFixed(1)}%` : `${change7Days.toFixed(1)}%`,
       history: historyArray,
-      countries,
-      referrers,
+      countries: countries as [string, string][],
+      referrers: referrers as [string, string][],
     };
   });
 

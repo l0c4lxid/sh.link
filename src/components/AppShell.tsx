@@ -102,14 +102,16 @@ export function AppShell({ children, title, user: userProp }: { children: ReactN
         {open && (
           <div className="fixed inset-0 z-40 lg:hidden">
             <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-            <aside className="relative h-full w-72 max-w-[85%] bg-background animate-slide-up">
-              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <aside className="relative h-[100dvh] w-72 max-w-[85%] bg-background animate-slide-up flex flex-col">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4 shrink-0">
                 <span className="font-mono text-sm font-bold tracking-tighter">SISOLO LINK</span>
                 <button onClick={() => setOpen(false)} aria-label="Close menu">
                   <X className="size-5" />
                 </button>
               </div>
-              <SidebarContent pathname={pathname} filteredNav={filteredNav} onNav={() => setOpen(false)} onLogout={triggerLogoutConfirm} />
+              <div className="flex-1 min-h-0">
+                <SidebarContent pathname={pathname} filteredNav={filteredNav} onNav={() => setOpen(false)} onLogout={triggerLogoutConfirm} />
+              </div>
             </aside>
           </div>
         )}

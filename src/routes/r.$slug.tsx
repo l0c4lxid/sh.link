@@ -12,6 +12,12 @@ const getLinkBySlugServer = createServerFn({ method: "GET" })
     const db = client.db();
     const link = await db.collection("links").findOne({ slug: slug.toLowerCase() });
     if (!link) return null;
+
+    if (link.expiresAt && new Date() > new Date(link.expiresAt)) {
+      await db.collection("links").deleteOne({ _id: link._id });
+      return null;
+    }
+
     return {
       slug: link.slug,
       dest: link.dest,

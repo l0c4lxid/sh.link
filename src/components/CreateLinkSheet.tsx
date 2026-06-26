@@ -27,6 +27,17 @@ const createLinkServer = createServerFn({ method: "POST" })
       destination = `https://${destination}`;
     }
 
+    const maxExpiration = new Date();
+    maxExpiration.setDate(maxExpiration.getDate() + 30);
+
+    let expires = maxExpiration;
+    if (input.expiresAt) {
+      const userExpires = new Date(input.expiresAt);
+      if (userExpires < maxExpiration) {
+        expires = userExpires;
+      }
+    }
+
     const newLink = {
       slug,
       dest: destination,
@@ -34,7 +45,7 @@ const createLinkServer = createServerFn({ method: "POST" })
       status: "active",
       clicks: 0,
       createdAt: new Date(),
-      expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+      expiresAt: expires,
       userId: input.userId, // Hubungkan dengan ID user yang sedang login
       clickStats: {
         total: 0,
