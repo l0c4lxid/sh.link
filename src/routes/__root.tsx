@@ -77,16 +77,30 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Sisolo Link — Pemendek URL Berkinerja Tinggi & Domain Kustom" },
+      { name: "description", content: "Sederhanakan tautan panjang Anda dengan Sisolo Link. Kelola domain kustom, pantau analitik klik real-time, dan buat kode QR secara instan." },
+      { name: "keywords", content: "pemendek url, link shortener, domain kustom, custom domain, tracking klik, analitik link, qr code generator, sisolo link" },
+      { name: "author", content: "Sisolo Link" },
+      { name: "robots", content: "index, follow" },
+      { property: "og:title", content: "Sisolo Link — Pemendek URL Berkinerja Tinggi & Domain Kustom" },
+      { property: "og:description", content: "Platform pemendek tautan modern dengan domain kustom, generator kode QR dinamis, dan statistik analitik klik lengkap." },
+      { property: "og:image", content: "/logo.png" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Sisolo Link — Pemendek URL Berkinerja Tinggi" },
+      { name: "twitter:description", content: "Sederhanakan tautan panjang Anda dengan domain kustom dan analitik klik lengkap." },
+      { name: "twitter:image", content: "/logo.png" },
     ],
     links: [
+      {
+        rel: "icon",
+        type: "image/png",
+        href: "/favicon.png",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/favicon.png",
+      },
       {
         rel: "stylesheet",
         href: appCss,
@@ -101,9 +115,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="id">
       <head>
         <HeadContent />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Sisolo Link",
+              "url": "https://sisolo.my.id",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://sisolo.my.id/dashboard/links?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            })
+          }}
+        />
       </head>
       <body>
         {children}
