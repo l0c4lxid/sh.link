@@ -1,24 +1,104 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { createServerFn } from "@tanstack/react-start";
+import { setCookie, deleteCookie } from "@tanstack/react-start/server";
+import crypto from "crypto";
+import clientPromise from "@/lib/mongodb";
+import { signJwt } from "@/lib/jwt";
+import { toast } from "sonner";
+export const authenticateServer = createServerFn({ method: "POST" })
+  .inputValidator((input: { email: string; password?: string }) => input)
+  .handler(async ({ data: input }) => {
+    const client = await clientPromise;
+    const db = client.db();
+    
+    const emailLower = input.email.toLowerCase().trim();
+    const user = await db.collection("users").findOne({ email: emailLower });
+    
+    if (!user) {
+      throw new Error("Pengguna tidak ditemukan.");
+    }
+    
+    const passwordHash = crypto.createHash("sha256").update(input.password || "").digest("hex");
+    if (user.passwordHash !== passwordHash) {
+      throw new Error("Password salah.");
+    }
+    
+    const token = signJwt({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    });
+    
+    setCookie("jwt_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 hari
+      path: "/",
+    });
+    
+    return {
+      success: true,
+      user: {
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      }
+    };
+  });
+
+export const logoutServer = createServerFn({ method: "POST" })
+  .handler(async () => {
+    deleteCookie("jwt_token", { path: "/" });
+    return { success: true };
+  });
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Masuk — Protocl.sh" },
-      { name: "description", content: "Masuk atau daftar ke konsol Protocl.sh." },
+      { title: "Masuk — sisolo.my.id" },
+      { name: "description", content: "Masuk ke konsol operator sisolo.my.id." },
     ],
   }),
   component: Auth,
 });
 
 function Auth() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Silakan masukkan email dan password");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await authenticateServer({
+        data: { email, password }
+      });
+      if (res.success) {
+        toast.success(`Selamat datang kembali, ${res.user.name}!`);
+        navigate({ to: "/dashboard" });
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Gagal masuk");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border px-5 py-4">
         <Link to="/" className="font-mono text-sm font-bold tracking-tighter">
-          PROTOCL<span className="text-primary">.SH</span>
+          SISOLO<span className="text-primary">.MY.ID</span>
         </Link>
       </header>
 
@@ -26,68 +106,51 @@ function Auth() {
         <div className="mx-auto max-w-md">
           <div className="mb-8 flex items-center gap-4">
             <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              /AUTH
+              /AUTENTIKASI
             </span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
           <h1 className="text-balance text-4xl font-extrabold uppercase leading-[0.9] tracking-tighter">
-            {mode === "login" ? (
-              <>Enter the<br /><span className="text-primary">Console.</span></>
-            ) : (
-              <>Initialize<br /><span className="text-primary">Operator.</span></>
-            )}
+            Masuk ke<br /><span className="text-primary">Konsol.</span>
           </h1>
 
-          <div className="mt-8 flex border border-border">
-            {(["login", "register"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`flex-1 py-3 font-mono text-[10px] font-bold uppercase tracking-widest ${
-                  mode === m ? "bg-foreground text-background" : "text-muted-foreground"
-                }`}
-              >
-                {m === "login" ? "Sign In" : "Register"}
-              </button>
-            ))}
-          </div>
-
-          <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
-            {mode === "register" && (
-              <Field label="Operator Name">
-                <input type="text" defaultValue="Alex Rivera" className="input" />
-              </Field>
-            )}
+          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
             <Field label="Email">
-              <input type="email" defaultValue="operator@acme.team" className="input" />
+              <input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="contoh: test@admin.com atau test@user.com" 
+                className="input" 
+                required 
+              />
             </Field>
             <Field label="Password">
-              <input type="password" defaultValue="••••••••••" className="input" />
+              <input 
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="masukkan password" 
+                className="input" 
+                required 
+              />
             </Field>
 
-            <Link
-              to="/dashboard"
-              className="block w-full bg-primary py-4 text-center font-mono text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20"
-            >
-              {mode === "login" ? "Authenticate →" : "Provision Account →"}
-            </Link>
-
             <button
-              type="button"
-              className="w-full border border-border py-3 font-mono text-[10px] font-bold uppercase tracking-widest hover:bg-muted"
+              type="submit"
+              disabled={loading}
+              className="block w-full bg-primary py-4 text-center font-mono text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 active:bg-foreground disabled:opacity-50"
             >
-              Continue with Google
+              {loading ? "MENGOTENTIKASI..." : "MASUK →"}
             </button>
           </form>
 
-          <p className="mt-8 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            {mode === "login" ? (
-              <>No account? <button onClick={() => setMode("register")} className="text-primary">Register →</button></>
-            ) : (
-              <>Have an account? <button onClick={() => setMode("login")} className="text-primary">Sign In →</button></>
-            )}
-          </p>
+          <div className="mt-8 border-t border-border pt-4 font-mono text-[10px] text-muted-foreground leading-relaxed">
+            <p className="font-bold uppercase text-foreground mb-1">AKUN UJI COBA:</p>
+            <p>🔑 Admin: <span className="text-foreground font-bold">test@admin.com</span> / Password: <span className="text-foreground font-bold">admin</span></p>
+            <p>🔑 User: <span className="text-foreground font-bold">test@user.com</span> / Password: <span className="text-foreground font-bold">user</span></p>
+          </div>
         </div>
       </main>
 

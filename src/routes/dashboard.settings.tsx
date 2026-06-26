@@ -2,27 +2,29 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 
 export const Route = createFileRoute("/dashboard/settings")({
-  head: () => ({ meta: [{ title: "Settings — Protocl.sh" }] }),
+  head: () => ({ meta: [{ title: "Pengaturan — sisolo.my.id" }] }),
   component: Settings,
 });
 
 function Settings() {
+  const { user } = Route.useRouteContext() as { user: any };
+
   return (
-    <AppShell title="Settings">
+    <AppShell title="Pengaturan" user={user}>
       <div className="px-5 py-6 lg:px-10 lg:py-10">
-        <h1 className="text-3xl font-extrabold uppercase tracking-tighter">Settings</h1>
-        <p className="font-mono text-[10px] uppercase text-muted-foreground">Workspace & operator preferences</p>
+        <h1 className="text-3xl font-extrabold uppercase tracking-tighter">Pengaturan</h1>
+        <p className="font-mono text-[10px] uppercase text-muted-foreground">Preferensi ruang kerja & operator</p>
 
         <div className="mt-6 space-y-6">
-          <Section title="Profile">
-            <Field label="Name"><input defaultValue="Alex Rivera" className="input" /></Field>
-            <Field label="Email"><input defaultValue="alex@acme.team" className="input" /></Field>
+          <Section title="Profil">
+            <Field label="Nama"><input defaultValue={user?.name || "Operator"} className="input" /></Field>
+            <Field label="Email"><input defaultValue={user?.email || "operator@sisolo.my.id"} className="input" /></Field>
           </Section>
 
-          <Section title="Workspace">
-            <Field label="Workspace Name"><input defaultValue="acme.team" className="input" /></Field>
-            <Field label="Default Domain">
-              <select className="input"><option>protocl.sh</option><option>my-brand.link</option></select>
+          <Section title="Ruang Kerja">
+            <Field label="Nama Ruang Kerja"><input defaultValue="sisolo.my.id" className="input" /></Field>
+            <Field label="Domain Bawaan">
+              <select className="input"><option>sisolo.my.id</option></select>
             </Field>
           </Section>
 
@@ -30,13 +32,13 @@ function Settings() {
             <div className="border border-border bg-muted p-3 font-mono text-[10px] text-muted-foreground">
               sk_live_••••••••••••••••a8f2
             </div>
-            <button className="border border-border py-2 font-mono text-[10px] font-bold uppercase tracking-widest hover:bg-muted">
-              Rotate Key
+            <button className="border border-border py-2 px-4 font-mono text-[10px] font-bold uppercase tracking-widest hover:bg-muted">
+              Putar Kunci
             </button>
           </Section>
         </div>
       </div>
-      <style>{`.input { width:100%; border:1px solid var(--border); background:var(--background); padding:0.75rem 0.75rem; font-family: var(--font-mono); font-size:0.75rem; outline:none; appearance:none; } .input:focus { border-color: var(--primary); }`}</style>
+      <style>{`.input { width:100%; border:1px solid var(--border); background:var(--background); padding:0.75rem 0.75rem; font-family: var(--font-mono); font-size:0.75rem; outline:none; } .input:focus { border-color: var(--primary); }`}</style>
     </AppShell>
   );
 }

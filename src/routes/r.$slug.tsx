@@ -5,7 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
 
 const getLinkBySlugServer = createServerFn({ method: "GET" })
-  .validator((slug: string) => slug)
+  .inputValidator((slug: string) => slug)
   .handler(async ({ data: slug }) => {
     const client = await clientPromise;
     const db = client.db();
@@ -20,7 +20,7 @@ const getLinkBySlugServer = createServerFn({ method: "GET" })
   });
 
 const recordClickServer = createServerFn({ method: "POST" })
-  .validator((slug: string) => slug)
+  .inputValidator((slug: string) => slug)
   .handler(async ({ data: slug }) => {
     const client = await clientPromise;
     const db = client.db();
@@ -64,7 +64,7 @@ const recordClickServer = createServerFn({ method: "POST" })
 
 export const Route = createFileRoute("/r/$slug")({
   head: ({ params }) => ({
-    meta: [{ title: `Redirecting /${params.slug} — Protocl.sh` }],
+    meta: [{ title: `Mengalihkan /${params.slug} — sisolo.my.id` }],
   }),
   component: RedirectPage,
   notFoundComponent: NotFoundPage,
@@ -75,9 +75,8 @@ export const Route = createFileRoute("/r/$slug")({
   },
 });
 
-
 function RedirectPage() {
-  const link = Route.useLoaderData();
+  const link = Route.useLoaderData() as { slug: string; dest: string; domain: string; createdAt: string };
   const [seconds, setSeconds] = useState(4);
   const [paused, setPaused] = useState(false);
   const [stats, setStats] = useState<{ total: number; today: number } | null>(null);
@@ -114,32 +113,32 @@ function RedirectPage() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
           <Link to="/" className="font-mono text-[11px] font-bold uppercase tracking-widest">
-            protocl<span className="text-primary">.sh</span>
+            sisolo<span className="text-primary">.my.id</span>
           </Link>
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            redirect / 302
+            pengalihan / 302
           </span>
         </div>
       </header>
 
       <section className="mx-auto max-w-3xl px-5 py-8 lg:py-14">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          // resolving slug
+          // menyelesaikan slug
         </p>
         <h1 className="mt-2 text-3xl font-extrabold uppercase leading-none tracking-tighter lg:text-5xl">
-          You are being<br />redirected
+          Anda sedang<br />dialihkan
         </h1>
 
         <div className="mt-8 grid gap-px border border-border bg-border lg:grid-cols-[1fr_auto]">
           <div className="bg-card p-5 lg:p-6">
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">source</div>
+            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">sumber</div>
             <div className="mt-2 flex items-center gap-2 font-mono text-sm">
               <Globe className="h-3.5 w-3.5 text-primary" />
               <span className="font-bold">{link.domain}</span>
               <span className="text-muted-foreground">/{link.slug}</span>
             </div>
 
-            <div className="mt-5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">destination</div>
+            <div className="mt-5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">tujuan</div>
             <div className="mt-2 break-all font-mono text-sm">
               <span className="font-bold">{destDisplay.host}</span>
               <span className="text-muted-foreground">{destDisplay.path}</span>
@@ -148,10 +147,10 @@ function RedirectPage() {
 
           <div className="flex flex-col justify-between bg-card p-5 lg:w-64 lg:p-6">
             <div>
-              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">redirect in</div>
+              <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">dialihkan dalam</div>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-5xl font-extrabold tabular-nums leading-none">{Math.max(seconds, 0)}</span>
-                <span className="font-mono text-[10px] uppercase text-muted-foreground">sec</span>
+                <span className="font-mono text-[10px] uppercase text-muted-foreground">detik</span>
               </div>
             </div>
             <div className="mt-5 flex flex-col gap-2">
@@ -159,29 +158,29 @@ function RedirectPage() {
                 href={link.dest}
                 className="inline-flex items-center justify-center gap-2 bg-primary px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90"
               >
-                Go now <ArrowUpRight className="h-3.5 w-3.5" />
+                Buka sekarang <ArrowUpRight className="h-3.5 w-3.5" />
               </a>
               <button
                 onClick={() => setPaused((p) => !p)}
                 className="inline-flex items-center justify-center border border-border bg-background px-4 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest hover:bg-secondary"
               >
-                {paused ? "Resume" : "Pause"}
+                {paused ? "Lanjutkan" : "Jeda"}
               </button>
             </div>
           </div>
         </div>
 
         <div className="mt-px grid gap-px border border-t-0 border-border bg-border sm:grid-cols-3">
-          <Stat label="Total clicks" value={stats?.total ?? "—"} />
-          <Stat label="Clicks today" value={stats?.today ?? "—"} />
-          <Stat label="Created" value={link.createdAt} mono />
+          <Stat label="Total klik" value={stats?.total ?? "—"} />
+          <Stat label="Klik hari ini" value={stats?.today ?? "—"} />
+          <Stat label="Dibuat" value={link.createdAt} mono />
         </div>
 
         <div className="mt-8 flex items-start gap-3 border border-border bg-secondary p-4">
           <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
-            Verify the destination above before continuing. Protocl.sh does not endorse third-party content.
-            Click stats are tracked locally on this device for demo purposes.
+            Verifikasi URL tujuan di atas sebelum melanjutkan. sisolo.my.id tidak mendukung konten pihak ketiga.
+            Statistik klik dilacak secara aman pada klaster basis data MongoDB.
           </p>
         </div>
       </section>
@@ -208,15 +207,15 @@ function NotFoundPage() {
     <main className="grid min-h-dvh place-items-center bg-background px-5 text-foreground">
       <div className="w-full max-w-lg border border-border bg-card p-6 lg:p-10">
         <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-destructive">
-          error 404 / slug not found
+          galat 404 / slug tidak ditemukan
         </div>
         <h1 className="mt-3 text-4xl font-extrabold uppercase leading-none tracking-tighter lg:text-6xl">
-          Dead link
+          Tautan Mati
         </h1>
         <p className="mt-4 font-mono text-sm text-muted-foreground">
-          The slug{" "}
+          Slug{" "}
           <span className="bg-secondary px-1.5 py-0.5 font-bold text-foreground">/{slug}</span>{" "}
-          does not resolve to any destination on this domain.
+          tidak merujuk ke tujuan apa pun di domain ini.
         </p>
 
         <div className="mt-6 grid gap-2 sm:grid-cols-2">
@@ -224,13 +223,13 @@ function NotFoundPage() {
             to="/"
             className="inline-flex items-center justify-center gap-2 bg-primary px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90"
           >
-            Back home
+            Kembali ke beranda
           </Link>
           <Link
             to="/dashboard/links"
             className="inline-flex items-center justify-center gap-2 border border-border bg-background px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-widest hover:bg-secondary"
           >
-            Manage links <ExternalLink className="h-3.5 w-3.5" />
+            Kelola tautan <ExternalLink className="h-3.5 w-3.5" />
           </Link>
         </div>
 

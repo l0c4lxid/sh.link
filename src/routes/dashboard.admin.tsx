@@ -1,42 +1,81 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState } from "react";
 import { X } from "lucide-react";
+import { createServerFn } from "@tanstack/react-start";
+import clientPromise from "@/lib/mongodb";
+
+const getAdminStatsServer = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const client = await clientPromise;
+    const db = client.db();
+    
+    const userCount = await db.collection("users").countDocuments();
+    const linkCount = await db.collection("links").countDocuments();
+    const uniqueDomains = await db.collection("links").distinct("domain");
+    const domainsCount = uniqueDomains.length || 1;
+
+    const allUsers = await db.collection("users").find({}).toArray();
+    
+    const usersList = await Promise.all(allUsers.map(async (u) => {
+      const uLinksCount = await db.collection("links").countDocuments({ userId: u._id.toString() });
+      return {
+        name: u.name,
+        email: u.email,
+        role: u.role === "admin" ? "Admin" : "Operator",
+        links: uLinksCount,
+        status: "active"
+      };
+    }));
+
+    return {
+      userCount,
+      linkCount,
+      domainsCount,
+      usersList
+    };
+  });
 
 export const Route = createFileRoute("/dashboard/admin")({
-  head: () => ({ meta: [{ title: "Admin Console — Protocl.sh" }] }),
+  head: () => ({ meta: [{ title: "Konsol Admin — sisolo.my.id" }] }),
+  beforeLoad: ({ context }) => {
+    const user = context.user as { role: string } | undefined;
+    if (user?.role !== "admin") {
+      throw redirect({
+        to: "/dashboard",
+      });
+    }
+  },
+  loader: async () => {
+    return await getAdminStatsServer();
+  },
   component: Admin,
 });
 
-const users = [
-  { name: "Alex Rivera", email: "alex@acme.team", role: "Admin", links: 32, status: "active" },
-  { name: "Maya Putri", email: "maya@acme.team", role: "Editor", links: 18, status: "active" },
-  { name: "Jordan Lim", email: "jordan@acme.team", role: "Viewer", links: 0, status: "active" },
-  { name: "Sasha N.", email: "sasha@ext.io", role: "Editor", links: 7, status: "suspended" },
-];
-
 function Admin() {
+  const { userCount, linkCount, domainsCount, usersList } = Route.useLoaderData();
+  const { user } = Route.useRouteContext() as { user: any };
   const [tab, setTab] = useState<"users" | "links" | "domains">("users");
-  const [editUser, setEditUser] = useState<typeof users[0] | null>(null);
+  const [editUser, setEditUser] = useState<typeof usersList[0] | null>(null);
 
   return (
-    <AppShell title="Admin Console">
+    <AppShell title="Konsol Admin" user={user}>
       <div className="px-5 py-6 lg:px-10 lg:py-10">
         <div className="mb-6 flex items-end justify-between">
           <div>
             <div className="flex items-center gap-2">
               <span className="size-2 bg-primary" />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">System Admin</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Admin Sistem</span>
             </div>
-            <h1 className="mt-2 text-3xl font-extrabold uppercase tracking-tighter">Console</h1>
+            <h1 className="mt-2 text-3xl font-extrabold uppercase tracking-tighter">Konsol</h1>
           </div>
         </div>
 
         <div className="mb-6 grid grid-cols-3 gap-px bg-border">
           {[
-            { l: "Users", v: "42" },
-            { l: "All Links", v: "1,208" },
-            { l: "Domains", v: "11" },
+            { l: "Pengguna", v: userCount.toString() },
+            { l: "Semua Link", v: linkCount.toLocaleString() },
+            { l: "Domain", v: domainsCount.toString() },
           ].map((s) => (
             <div key={s.l} className="bg-background p-4">
               <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{s.l}</div>
@@ -46,22 +85,26 @@ function Admin() {
         </div>
 
         <div className="mb-4 flex border border-border">
-          {(["users", "links", "domains"] as const).map((t) => (
+          {([
+            { id: "users", label: "Pengguna" },
+            { id: "links", label: "Tautan" },
+            { id: "domains", label: "Domain" }
+          ] as const).map((t) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={t.id}
+              onClick={() => setTab(t.id)}
               className={`flex-1 py-3 font-mono text-[10px] font-bold uppercase tracking-widest ${
-                tab === t ? "bg-foreground text-background" : "text-muted-foreground"
+                tab === t.id ? "bg-foreground text-background" : "text-muted-foreground"
               }`}
             >
-              {t}
+              {t.label}
             </button>
           ))}
         </div>
 
         {tab === "users" && (
           <div className="space-y-3">
-            {users.map((u) => (
+            {usersList.map((u) => (
               <button
                 key={u.email}
                 onClick={() => setEditUser(u)}
@@ -77,7 +120,7 @@ function Admin() {
                   </div>
                   <div className="text-right">
                     <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-primary">{u.role}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">{u.links} links</div>
+                    <div className="font-mono text-[10px] text-muted-foreground">{u.links} tautan</div>
                   </div>
                 </div>
               </button>
@@ -87,53 +130,53 @@ function Admin() {
 
         {tab === "links" && (
           <div className="border border-border bg-foreground p-5 text-background">
-            <p className="font-mono text-xs">/admin/links — 1,208 entries across 42 operators</p>
-            <p className="mt-2 font-mono text-[10px] text-background/60">Full CRUD: view, edit destination, force-expire, transfer ownership.</p>
+            <p className="font-mono text-xs">/admin/tautan — {linkCount} entri di seluruh operator</p>
+            <p className="mt-2 font-mono text-[10px] text-background/60">CRUD Penuh: lihat, ubah tujuan, hapus tautan, dan kelola kepemilikan tautan secara langsung lewat MongoDB.</p>
           </div>
         )}
 
         {tab === "domains" && (
           <div className="border border-border bg-foreground p-5 text-background">
-            <p className="font-mono text-xs">/admin/domains — 11 verified, 3 pending</p>
-            <p className="mt-2 font-mono text-[10px] text-background/60">Approve, revoke, and inspect DNS health for all workspace domains.</p>
+            <p className="font-mono text-xs">/admin/domain — {domainsCount} domain aktif terverifikasi</p>
+            <p className="mt-2 font-mono text-[10px] text-background/60">Tambah, hapus, dan tinjau DNS dari domain sisolo.my.id.</p>
           </div>
         )}
       </div>
 
-      {/* Admin edit popup */}
+      {/* Admin edit operator popup */}
       {editUser && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 backdrop-blur-sm sm:items-center">
           <div className="animate-slide-up w-full max-w-lg bg-card p-6 pb-10 ring-1 ring-foreground/5 sm:rounded">
             <div className="mx-auto mb-6 h-1 w-12 rounded-full bg-border sm:hidden" />
             <div className="mb-6 flex items-start justify-between">
               <div>
-                <h2 className="text-xl font-extrabold uppercase tracking-tighter">Edit Operator</h2>
+                <h2 className="text-xl font-extrabold uppercase tracking-tighter">Ubah Operator</h2>
                 <p className="font-mono text-[10px] uppercase text-muted-foreground">{editUser.email}</p>
               </div>
-              <button onClick={() => setEditUser(null)} aria-label="Close"><X className="size-5" /></button>
+              <button onClick={() => setEditUser(null)} aria-label="Tutup"><X className="size-5" /></button>
             </div>
 
             <div className="space-y-4">
-              <Field label="Name">
+              <Field label="Nama">
                 <input defaultValue={editUser.name} className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none" />
               </Field>
-              <Field label="Role">
+              <Field label="Peran">
                 <select defaultValue={editUser.role} className="w-full appearance-none border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none">
-                  <option>Admin</option><option>Editor</option><option>Viewer</option>
+                  <option>Admin</option><option>Operator</option>
                 </select>
               </Field>
               <Field label="Status">
                 <select defaultValue={editUser.status} className="w-full appearance-none border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none">
-                  <option value="active">Active</option><option value="suspended">Suspended</option>
+                  <option value="active">Aktif</option><option value="suspended">Ditangguhkan</option>
                 </select>
               </Field>
 
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button onClick={() => setEditUser(null)} className="border border-destructive py-3 font-mono text-[10px] font-bold uppercase tracking-widest text-destructive">
-                  Delete User
+                  Hapus Operator
                 </button>
                 <button onClick={() => setEditUser(null)} className="bg-primary py-3 font-mono text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                  Save Changes
+                  Simpan Perubahan
                 </button>
               </div>
             </div>

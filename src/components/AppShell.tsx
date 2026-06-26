@@ -1,25 +1,48 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Home, Link2, BarChart3, Globe, QrCode, Settings, ShieldCheck, Menu, X, LogOut, Plus } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { CreateLinkSheet } from "./CreateLinkSheet";
+import { createServerFn } from "@tanstack/react-start";
+import { deleteCookie } from "@tanstack/react-start/server";
+import { toast } from "sonner";
 
 const nav = [
-  { to: "/dashboard", label: "Overview", icon: Home },
-  { to: "/dashboard/links", label: "My Links", icon: Link2 },
-  { to: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/dashboard/domains", label: "Domains", icon: Globe },
-  { to: "/dashboard/qr", label: "QR Codes", icon: QrCode },
+  { to: "/dashboard", label: "Ikhtisar", icon: Home },
+  { to: "/dashboard/links", label: "Tautan Saya", icon: Link2 },
+  { to: "/dashboard/analytics", label: "Analitik", icon: BarChart3 },
+  { to: "/dashboard/domains", label: "Domain", icon: Globe },
+  { to: "/dashboard/qr", label: "Kode QR", icon: QrCode },
   { to: "/dashboard/admin", label: "Admin", icon: ShieldCheck },
-  { to: "/dashboard/settings", label: "Settings", icon: Settings },
+  { to: "/dashboard/settings", label: "Pengaturan", icon: Settings },
 ];
 
-export function AppShell({ children, title }: { children: ReactNode; title: string }) {
+const logoutServer = createServerFn({ method: "POST" })
+  .handler(async () => {
+    deleteCookie("jwt_token", { path: "/" });
+    return { success: true };
+  });
+
+export function AppShell({ children, title, user }: { children: ReactNode; title: string; user?: any }) {
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+
+  const isUserAdmin = user?.role === "admin";
+  const filteredNav = nav.filter(item => item.to !== "/dashboard/admin" || isUserAdmin);
+
+  const handleLogout = async () => {
+    try {
+      await logoutServer();
+      toast.success("Berhasil keluar.");
+      navigate({ to: "/auth" });
+    } catch (error) {
+      toast.error("Gagal keluar");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Top bar (mobile + desktop) */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-5 py-3 backdrop-blur-md">
         <div className="flex items-center gap-3">
@@ -27,7 +50,7 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
             <Menu className="size-5" />
           </button>
           <Link to="/" className="font-mono text-sm font-bold tracking-tighter">
-            PROTOCL<span className="text-primary">.SH</span>
+            SISOLO<span className="text-primary">.MY.ID</span>
           </Link>
         </div>
         <div className="flex items-center gap-3">
@@ -38,15 +61,15 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
             onClick={() => setCreateOpen(true)}
             className="flex items-center gap-1.5 bg-primary px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-primary-foreground"
           >
-            <Plus className="size-3" /> New
+            <Plus className="size-3" /> Baru
           </button>
         </div>
       </header>
 
-      <div className="lg:flex">
+      <div className="lg:flex flex-1">
         {/* Desktop sidebar */}
-        <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
-          <SidebarContent pathname={pathname} />
+        <aside className="hidden w-64 shrink-0 border-r border-border lg:block sticky top-[45px] h-[calc(100vh-45px)]">
+          <SidebarContent pathname={pathname} filteredNav={filteredNav} onLogout={handleLogout} />
         </aside>
 
         {/* Mobile drawer */}
@@ -55,12 +78,12 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
             <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
             <aside className="relative h-full w-72 max-w-[85%] bg-background animate-slide-up">
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                <span className="font-mono text-sm font-bold tracking-tighter">PROTOCL.SH</span>
+                <span className="font-mono text-sm font-bold tracking-tighter">SISOLO.MY.ID</span>
                 <button onClick={() => setOpen(false)} aria-label="Close menu">
                   <X className="size-5" />
                 </button>
               </div>
-              <SidebarContent pathname={pathname} onNav={() => setOpen(false)} />
+              <SidebarContent pathname={pathname} filteredNav={filteredNav} onNav={() => setOpen(false)} onLogout={handleLogout} />
             </aside>
           </div>
         )}
@@ -69,13 +92,13 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
       </div>
 
       {/* Bottom tab bar (mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 backdrop-blur-md lg:hidden">
+      <nav className={`fixed bottom-0 left-0 right-0 z-30 grid ${isUserAdmin ? "grid-cols-5" : "grid-cols-4"} border-t border-border bg-background/95 backdrop-blur-md lg:hidden`}>
         {[
-          { to: "/dashboard", label: "Home", icon: Home },
-          { to: "/dashboard/links", label: "Links", icon: Link2 },
-          { to: "/dashboard/analytics", label: "Stats", icon: BarChart3 },
-          { to: "/dashboard/admin", label: "Admin", icon: ShieldCheck },
-          { to: "/dashboard/settings", label: "Set", icon: Settings },
+          { to: "/dashboard", label: "Beranda", icon: Home },
+          { to: "/dashboard/links", label: "Tautan", icon: Link2 },
+          { to: "/dashboard/analytics", label: "Statistik", icon: BarChart3 },
+          ...(isUserAdmin ? [{ to: "/dashboard/admin", label: "Admin", icon: ShieldCheck }] : []),
+          { to: "/dashboard/settings", label: "Pengaturan", icon: Settings },
         ].map((item) => {
           const active = pathname === item.to;
           const Icon = item.icon;
@@ -92,20 +115,30 @@ export function AppShell({ children, title }: { children: ReactNode; title: stri
         })}
       </nav>
 
-      <CreateLinkSheet open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateLinkSheet open={createOpen} onClose={() => setCreateOpen(false)} user={user} />
     </div>
   );
 }
 
-function SidebarContent({ pathname, onNav }: { pathname: string; onNav?: () => void }) {
+function SidebarContent({
+  pathname,
+  filteredNav,
+  onNav,
+  onLogout
+}: {
+  pathname: string;
+  filteredNav: typeof nav;
+  onNav?: () => void;
+  onLogout: () => void;
+}) {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border p-5">
-        <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Workspace</div>
-        <div className="mt-1 font-mono text-sm font-bold">acme.team</div>
+        <div className="font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ruang Kerja</div>
+        <div className="mt-1 font-mono text-sm font-bold">sisolo.my.id</div>
       </div>
       <nav className="flex-1 px-3 py-4">
-        {nav.map((item) => {
+        {filteredNav.map((item) => {
           const active = pathname === item.to;
           const Icon = item.icon;
           return (
@@ -127,9 +160,12 @@ function SidebarContent({ pathname, onNav }: { pathname: string; onNav?: () => v
         })}
       </nav>
       <div className="border-t border-border p-4">
-        <button className="flex w-full items-center gap-3 px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary">
+        <button
+          onClick={onLogout}
+          className="flex w-full items-center gap-3 px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary"
+        >
           <LogOut className="size-3.5" />
-          Log Out
+          Keluar
         </button>
       </div>
     </div>
