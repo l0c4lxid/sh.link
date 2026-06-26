@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const getAdminStatsServer = createServerFn({ method: "GET" })
   .handler(async () => {
@@ -36,6 +37,53 @@ const getAdminStatsServer = createServerFn({ method: "GET" })
     };
   });
 
+function AdminLoading() {
+  return (
+    <AppShell title="Konsol Admin">
+      <div className="px-5 py-6 lg:px-10 lg:py-10">
+        <div className="mb-6">
+          <Skeleton className="h-3 w-24 mb-2" />
+          <Skeleton className="h-8 w-32" />
+        </div>
+
+        <div className="mb-6 grid grid-cols-3 gap-px bg-border">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-background p-4">
+              <Skeleton className="h-3 w-20 mb-3" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-4 flex border border-border">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex-1 py-3 flex justify-center">
+              <Skeleton className="h-3 w-16" />
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border border-border p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-32 mb-2" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+                <div className="text-right">
+                  <Skeleton className="h-3 w-16 mb-1" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
 export const Route = createFileRoute("/dashboard/admin")({
   head: () => ({ meta: [{ title: "Konsol Admin | Sisolo Link" }] }),
   beforeLoad: ({ context }) => {
@@ -50,6 +98,7 @@ export const Route = createFileRoute("/dashboard/admin")({
     return await getAdminStatsServer();
   },
   component: Admin,
+  pendingComponent: AdminLoading,
 });
 
 function Admin() {

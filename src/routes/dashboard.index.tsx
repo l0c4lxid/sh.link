@@ -3,6 +3,7 @@ import { AppShell } from "@/components/AppShell";
 import { ArrowUpRight } from "lucide-react";
 import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
+import { Skeleton } from "@/components/ui/skeleton";
 const getDashboardStatsServer = createServerFn({ method: "GET" })
   .inputValidator((user: { userId: string; role: string } | null) => user)
   .handler(async ({ data: user }) => {
@@ -67,14 +68,58 @@ const getDashboardStatsServer = createServerFn({ method: "GET" })
     };
   });
 
+function OverviewLoading() {
+  return (
+    <AppShell title="Ikhtisar">
+      <div className="px-5 py-6 lg:px-10 lg:py-10">
+        <div className="mb-6">
+          <Skeleton className="h-7 w-48 mb-1" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+
+        <div className="mb-6 grid grid-cols-3 gap-px bg-border">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-background p-4">
+              <Skeleton className="h-3 w-20 mb-3" />
+              <Skeleton className="h-8 w-16" />
+            </div>
+          ))}
+        </div>
+
+        <div className="mb-6 border border-border p-5">
+          <Skeleton className="h-4 w-48 mb-4" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+
+        <div className="mb-6">
+          <Skeleton className="h-4 w-32 mb-4" />
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border-b border-border pb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-24 mb-2" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                  <Skeleton className="h-8 w-12" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
 export const Route = createFileRoute("/dashboard/")({
   head: () => ({ meta: [{ title: "Ikhtisar | Sisolo Link" }] }),
   loader: async ({ context }) => {
-    // Ambil context user hasil dari layout route dashboard.tsx
     const user = context.user as { userId: string; role: string; name: string } | undefined;
     return await getDashboardStatsServer({ data: user || null });
   },
   component: Overview,
+  pendingComponent: OverviewLoading,
 });
 
 function Overview() {
