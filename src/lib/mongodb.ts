@@ -22,9 +22,22 @@ async function seedDatabase(mongoClient: MongoClient) {
   try {
     const db = mongoClient.db();
     
-    // Create unique indexes
     await db.collection("users").createIndex({ email: 1 }, { unique: true });
     await db.collection("links").createIndex({ slug: 1 }, { unique: true });
+    await db.collection("domains").createIndex({ name: 1 }, { unique: true });
+
+    // Seed Domains
+    const domainCount = await db.collection("domains").countDocuments();
+    if (domainCount === 0) {
+      console.log("Seeding default domain to MongoDB...");
+      await db.collection("domains").insertOne({
+        name: "sisolo.my.id",
+        status: "verified",
+        primary: true,
+        userId: null,
+        createdAt: new Date(),
+      });
+    }
 
     // Seed Users
     const userCount = await db.collection("users").countDocuments();

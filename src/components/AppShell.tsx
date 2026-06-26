@@ -1,4 +1,4 @@
-import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate, useRouteContext } from "@tanstack/react-router";
 import { Home, Link2, BarChart3, Globe, QrCode, Settings, ShieldCheck, Menu, X, LogOut, Plus } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { CreateLinkSheet } from "./CreateLinkSheet";
@@ -22,11 +22,33 @@ const logoutServer = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-export function AppShell({ children, title, user }: { children: ReactNode; title: string; user?: any }) {
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+export function AppShell({ children, title, user: userProp }: { children: ReactNode; title: string; user?: any }) {
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+
+  // Dynamically resolve user from Route context to prevent sidebar admin menu hiding
+  let contextUser: any = null;
+  try {
+    const context = useRouteContext({ from: "/dashboard" }) as { user: any };
+    contextUser = context?.user;
+  } catch (e) {
+    // fallback
+  }
+  const user = userProp || contextUser;
 
   const isUserAdmin = user?.role === "admin";
   const filteredNav = nav.filter(item => item.to !== "/dashboard/admin" || isUserAdmin);
@@ -39,6 +61,10 @@ export function AppShell({ children, title, user }: { children: ReactNode; title
     } catch (error) {
       toast.error("Gagal keluar");
     }
+  };
+
+  const triggerLogoutConfirm = () => {
+    setLogoutConfirmOpen(true);
   };
 
   return (
@@ -69,7 +95,7 @@ export function AppShell({ children, title, user }: { children: ReactNode; title
       <div className="lg:flex flex-1">
         {/* Desktop sidebar */}
         <aside className="hidden w-64 shrink-0 border-r border-border lg:block sticky top-[45px] h-[calc(100vh-45px)]">
-          <SidebarContent pathname={pathname} filteredNav={filteredNav} onLogout={handleLogout} />
+          <SidebarContent pathname={pathname} filteredNav={filteredNav} onLogout={triggerLogoutConfirm} />
         </aside>
 
         {/* Mobile drawer */}
@@ -83,7 +109,7 @@ export function AppShell({ children, title, user }: { children: ReactNode; title
                   <X className="size-5" />
                 </button>
               </div>
-              <SidebarContent pathname={pathname} filteredNav={filteredNav} onNav={() => setOpen(false)} onLogout={handleLogout} />
+              <SidebarContent pathname={pathname} filteredNav={filteredNav} onNav={() => setOpen(false)} onLogout={triggerLogoutConfirm} />
             </aside>
           </div>
         )}
@@ -116,6 +142,33 @@ export function AppShell({ children, title, user }: { children: ReactNode; title
       </nav>
 
       <CreateLinkSheet open={createOpen} onClose={() => setCreateOpen(false)} user={user} />
+
+      <AlertDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen}>
+        <AlertDialogContent className="border-border bg-background font-mono sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-bold uppercase tracking-tight text-destructive">
+              Konfirmasi Keluar
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Apakah Anda yakin ingin keluar dari sesi Anda? Anda harus masuk kembali untuk mengelola tautan singkat dan kustom domain Anda.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 gap-2 border-t border-border pt-4 sm:space-x-0">
+            <AlertDialogCancel
+              onClick={() => setLogoutConfirmOpen(false)}
+              className="flex-1 border-border font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer hover:bg-secondary sm:mt-0"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="flex-1 bg-destructive text-destructive-foreground font-mono text-[10px] font-bold uppercase tracking-widest cursor-pointer hover:bg-destructive/90"
+            >
+              Keluar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

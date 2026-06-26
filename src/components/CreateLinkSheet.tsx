@@ -48,6 +48,16 @@ const createLinkServer = createServerFn({ method: "POST" })
     return { success: true, slug };
   });
 
+const getUserDomainsServer = createServerFn({ method: "GET" })
+  .inputValidator((userId: string | null) => userId)
+  .handler(async ({ data: userId }) => {
+    const client = await clientPromise;
+    const db = client.db();
+    const query = userId ? { $or: [{ userId: null }, { userId }] } : { userId: null };
+    const docs = await db.collection("domains").find(query).toArray();
+    return docs.map(d => d.name);
+  });
+
 export function CreateLinkSheet({ open, onClose, user }: { open: boolean; onClose: () => void; user?: { userId: string } }) {
   const router = useRouter();
   const [dest, setDest] = useState("");
@@ -56,21 +66,31 @@ export function CreateLinkSheet({ open, onClose, user }: { open: boolean; onClos
   const [expiresAt, setExpiresAt] = useState("");
   const [pwd, setPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [availableDomains, setAvailableDomains] = useState<string[]>(["sisolo.my.id"]);
 
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
       // Reset form
       setDest("");
-      setDomain("sisolo.my.id");
       setSlug("");
       setExpiresAt("");
       setPwd(false);
+
+      // Load domains dynamically
+      getUserDomainsServer({ data: user?.userId || null })
+        .then((domains) => {
+          if (domains && domains.length > 0) {
+            setAvailableDomains(domains);
+            setDomain(domains[0]);
+          }
+        })
+        .catch(console.error);
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  }, [open, user]);
 
   if (!open) return null;
 
@@ -136,7 +156,11 @@ export function CreateLinkSheet({ open, onClose, user }: { open: boolean; onClos
                 onChange={(e) => setDomain(e.target.value)}
                 className="w-full appearance-none border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none"
               >
-                <option>sisolo.my.id</option>
+                {availableDomains.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
               </select>
             </Field>
             <Field label="Slug (opsional)">
