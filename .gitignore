@@ -32,4 +32,18 @@ dist-ssr
 *.sw?
 
 .env
+.agents/
 .agents/**
+.skill/
+.skill/**
+
+# Vercel deployment folder
+.vercel/
+
+# Temporary files & OS specific
+tmp/
+temp/
+*.tmp
+*.temp
+Thumbs.db
+.eslintcache
