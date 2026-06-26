@@ -4,6 +4,8 @@ import { ArrowUpRight, BarChart3, ExternalLink, Globe, Shield } from "lucide-rea
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import clientPromise from "@/lib/mongodb";
+import crypto from "crypto";
+import { toast } from "sonner";
 
 const getLinkBySlugServer = createServerFn({ method: "GET" })
   .inputValidator((slug: string) => slug)
@@ -22,8 +24,26 @@ const getLinkBySlugServer = createServerFn({ method: "GET" })
       slug: link.slug,
       dest: link.dest,
       domain: link.domain,
+      hasPassword: !!link.passwordHash,
       createdAt: link.createdAt instanceof Date ? link.createdAt.toISOString().slice(0, 10) : String(link.createdAt || ""),
     };
+  });
+
+const verifyLinkPasswordServer = createServerFn({ method: "POST" })
+  .inputValidator((input: { slug: string; password?: string }) => input)
+  .handler(async ({ data: { slug, password } }) => {
+    const client = await clientPromise;
+    const db = client.db();
+    const link = await db.collection("links").findOne({ slug: slug.toLowerCase() });
+    if (!link) return { success: false, error: "Tautan tidak ditemukan" };
+    
+    if (!link.passwordHash) return { success: true };
+    
+    const hash = crypto.createHash("sha256").update(password || "").digest("hex");
+    if (hash === link.passwordHash) {
+      return { success: true };
+    }
+    return { success: false, error: "Kata sandi salah!" };
   });
 
 const recordClickServer = createServerFn({ method: "POST" })
@@ -115,20 +135,25 @@ export const Route = createFileRoute("/r/$slug")({
 });
 
 function RedirectPage() {
-  const link = Route.useLoaderData() as { slug: string; dest: string; domain: string; createdAt: string };
+  const link = Route.useLoaderData() as { slug: string; dest: string; domain: string; createdAt: string; hasPassword?: boolean };
   const [seconds, setSeconds] = useState(4);
   const [paused, setPaused] = useState(false);
   const [stats, setStats] = useState<{ total: number; today: number } | null>(null);
+  const [isVerified, setIsVerified] = useState(!link.hasPassword);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
+    if (!isVerified) return;
     recordClickServer({ data: { slug: link.slug, referrer: document.referrer } }).then((s) => {
       if (s) {
         setStats({ total: s.total, today: s.today });
       }
     });
-  }, [link.slug]);
+  }, [link.slug, isVerified]);
 
   useEffect(() => {
+    if (!isVerified) return;
     if (paused) return;
     if (seconds <= 0) {
       window.location.replace(link.dest);
@@ -136,7 +161,7 @@ function RedirectPage() {
     }
     const t = setTimeout(() => setSeconds((n) => n - 1), 1000);
     return () => clearTimeout(t);
-  }, [seconds, paused, link.dest]);
+  }, [seconds, paused, link.dest, isVerified]);
 
   const destDisplay = useMemo(() => {
     try {
@@ -147,8 +172,85 @@ function RedirectPage() {
     }
   }, [link.dest]);
 
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifying(true);
+    try {
+      const res = await verifyLinkPasswordServer({ data: { slug: link.slug, password: passwordInput } });
+      if (res.success) {
+        setIsVerified(true);
+        toast.success("Kata sandi benar!");
+      } else {
+        toast.error(res.error || "Kata sandi salah");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Terjadi kesalahan");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  if (!isVerified) {
+    return (
+      <main className="min-h-dvh bg-background text-foreground flex flex-col justify-between">
+        <header className="border-b border-border">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
+            <Link to="/" className="font-mono text-[11px] font-bold uppercase tracking-widest">
+              sisolo<span className="text-primary">.my.id</span>
+            </Link>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              terproteksi / 401
+            </span>
+          </div>
+        </header>
+
+        <section className="mx-auto max-w-md w-full px-5 py-12 flex-1 flex flex-col justify-center animate-fade-in">
+          <div className="border border-border bg-card p-6 font-mono text-xs">
+            <div className="flex justify-center mb-6">
+              <div className="p-3 bg-secondary rounded-full border border-border">
+                <Shield className="size-8 text-primary" />
+              </div>
+            </div>
+            <h2 className="text-center text-lg font-extrabold uppercase tracking-tight mb-2">Tautan Terproteksi</h2>
+            <p className="text-center text-[10px] text-muted-foreground uppercase mb-6 leading-relaxed">
+              Tautan pendek ini dilindungi oleh kata sandi. Silakan masukkan kata sandi untuk melanjutkan.
+            </p>
+
+            <form onSubmit={handleVerify} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground">Kata Sandi</label>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Masukkan kata sandi"
+                  className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none"
+                  required
+                  autoFocus
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={verifying}
+                className="w-full bg-primary py-3.5 font-mono text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-lg shadow-primary/20 hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              >
+                {verifying ? "Memverifikasi..." : "Verifikasi & Lanjutkan →"}
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <footer className="border-t border-border py-4 text-center">
+          <p className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground">
+            Sisolo Link &copy; 2026. Seluruh hak cipta dilindungi.
+          </p>
+        </footer>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-dvh bg-background text-foreground">
+    <main className="min-h-dvh bg-background text-foreground animate-fade-in">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
           <Link to="/" className="font-mono text-[11px] font-bold uppercase tracking-widest">

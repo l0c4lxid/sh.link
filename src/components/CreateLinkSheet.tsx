@@ -4,8 +4,9 @@ import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
+import crypto from "crypto";
 const createLinkServer = createServerFn({ method: "POST" })
-  .inputValidator((input: { slug: string; dest: string; domain: string; expiresAt?: string; userId: string | null }) => input)
+  .inputValidator((input: { slug: string; dest: string; domain: string; expiresAt?: string; userId: string | null; password?: string }) => input)
   .handler(async ({ data: input }) => {
     const client = await clientPromise;
     const db = client.db();
@@ -38,6 +39,11 @@ const createLinkServer = createServerFn({ method: "POST" })
       }
     }
 
+    let passwordHash: string | undefined = undefined;
+    if (input.password) {
+      passwordHash = crypto.createHash("sha256").update(input.password).digest("hex");
+    }
+
     const newLink = {
       slug,
       dest: destination,
@@ -47,6 +53,7 @@ const createLinkServer = createServerFn({ method: "POST" })
       createdAt: new Date(),
       expiresAt: expires,
       userId: input.userId, // Hubungkan dengan ID user yang sedang login
+      passwordHash,
       clickStats: {
         total: 0,
         lastDate: new Date().toISOString().slice(0, 10),
@@ -76,6 +83,7 @@ export function CreateLinkSheet({ open, onClose, user }: { open: boolean; onClos
   const [slug, setSlug] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [pwd, setPwd] = useState(false);
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [availableDomains, setAvailableDomains] = useState<string[]>(["sisolo.my.id"]);
 
@@ -87,6 +95,7 @@ export function CreateLinkSheet({ open, onClose, user }: { open: boolean; onClos
       setSlug("");
       setExpiresAt("");
       setPwd(false);
+      setPassword("");
 
       // Load domains dynamically
       getUserDomainsServer({ data: user?.userId || null })
@@ -121,6 +130,7 @@ export function CreateLinkSheet({ open, onClose, user }: { open: boolean; onClos
           domain,
           expiresAt: expiresAt || undefined,
           userId: user?.userId || null,
+          password: pwd ? password : undefined,
         }
       });
       toast.success("Tautan singkat berhasil dibuat!");
@@ -207,6 +217,19 @@ export function CreateLinkSheet({ open, onClose, user }: { open: boolean; onClos
             </div>
             <span className="font-mono text-[10px] text-muted-foreground">{pwd ? "AKTIF" : "NONAKTIF"}</span>
           </button>
+
+          {pwd && (
+            <Field label="Kata Sandi Proteksi">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Masukkan kata sandi untuk tautan ini"
+                className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none"
+                required
+              />
+            </Field>
+          )}
 
           <button
             type="submit"

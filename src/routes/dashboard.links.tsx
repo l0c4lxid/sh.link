@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Filter, Search } from "lucide-react";
+import { Filter, Search, Lock, Copy } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
@@ -78,6 +78,7 @@ const getLinksServer = createServerFn({ method: "GET" })
         status: doc.status || "active",
         createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString().slice(0, 10) : String(doc.createdAt || ""),
         creator: creatorName,
+        hasPassword: !!doc.passwordHash,
       };
     });
   });
@@ -174,11 +175,29 @@ function Links() {
             <tbody>
               {links.map((l) => (
                 <tr key={l.slug} className="border-t border-border">
-                  <td className="p-3 font-bold text-primary">/{l.slug}</td>
+                  <td className="p-3 font-bold text-primary">
+                    <div className="flex items-center gap-1.5">
+                      <span>/{l.slug}</span>
+                      {l.hasPassword && <span title="Dilindungi Kata Sandi"><Lock className="size-3 text-muted-foreground" /></span>}
+                    </div>
+                  </td>
                   <td className="p-3 text-muted-foreground max-w-xs truncate">{l.dest}</td>
                   <td className="p-3 text-muted-foreground">{l.domain}</td>
                   <td className="p-3 text-muted-foreground font-mono text-[10px]">{l.creator}</td>
-                  <td className="p-3 text-right font-bold">{l.clicks.toLocaleString()}</td>
+                  <td className="p-3 text-right font-bold">
+                    <div>{l.clicks.toLocaleString()}</div>
+                    <button
+                      onClick={() => {
+                        const fullUrl = `${window.location.origin}/r/${l.slug}`;
+                        navigator.clipboard.writeText(fullUrl);
+                        toast.success("Tautan disalin!");
+                      }}
+                      className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-muted-foreground hover:text-primary cursor-pointer justify-end w-full"
+                      title="Salin Tautan"
+                    >
+                      <Copy className="size-3" /> Salin
+                    </button>
+                  </td>
                   <td className="p-3">
                     {l.status === "active" ? (
                       <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-success" /> Aktif</span>
@@ -214,6 +233,7 @@ function Links() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-primary">/{l.slug}</span>
+                    {l.hasPassword && <span title="Dilindungi Kata Sandi"><Lock className="size-3 text-muted-foreground" /></span>}
                     {l.status === "active" ? (
                       <span className="size-1 rounded-full bg-success" />
                     ) : (
@@ -223,9 +243,20 @@ function Links() {
                   <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">{l.dest}</p>
                   <p className="mt-0.5 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">via {l.domain} · Pembuat: {l.creator}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end">
                   <div className="font-mono text-sm font-bold tracking-tighter">{l.clicks.toLocaleString()}</div>
                   <div className="font-mono text-[9px] uppercase tracking-tighter text-muted-foreground">Klik</div>
+                  <button
+                    onClick={() => {
+                      const fullUrl = `${window.location.origin}/r/${l.slug}`;
+                      navigator.clipboard.writeText(fullUrl);
+                      toast.success("Tautan disalin!");
+                    }}
+                    className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-muted-foreground hover:text-primary cursor-pointer"
+                    title="Salin Tautan"
+                  >
+                    <Copy className="size-3" /> Salin
+                  </button>
                 </div>
               </div>
               <div className="mt-3 flex gap-3">

@@ -1,10 +1,60 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState } from "react";
 import { toast } from "sonner";
 import { createServerFn } from "@tanstack/react-start";
+import { setCookie } from "@tanstack/react-start/server";
 import clientPromise from "@/lib/mongodb";
 import crypto from "crypto";
+import { signJwt } from "@/lib/jwt";
+
+const updateProfileServer = createServerFn({ method: "POST" })
+  .inputValidator((input: { name: string; email: string; currentEmail: string }) => input)
+  .handler(async ({ data: input }) => {
+    const client = await clientPromise;
+    const db = client.db();
+    
+    const emailLower = input.email.toLowerCase().trim();
+    const nameTrim = input.name.trim();
+    if (!nameTrim) throw new Error("Nama harus diisi.");
+    if (!emailLower) throw new Error("Email harus diisi.");
+    
+    // If email changed, check uniqueness
+    if (emailLower !== input.currentEmail.toLowerCase().trim()) {
+      const existing = await db.collection("users").findOne({ email: emailLower });
+      if (existing) {
+        throw new Error("Email sudah terdaftar pada pengguna lain.");
+      }
+    }
+    
+    const user = await db.collection("users").findOne({ email: input.currentEmail.toLowerCase().trim() });
+    if (!user) {
+      throw new Error("Pengguna tidak ditemukan.");
+    }
+    
+    await db.collection("users").updateOne(
+      { _id: user._id },
+      { $set: { name: nameTrim, email: emailLower } }
+    );
+    
+    // Issue a new JWT token
+    const token = signJwt({
+      userId: user._id.toString(),
+      email: emailLower,
+      role: user.role,
+      name: nameTrim,
+    });
+    
+    setCookie("jwt_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+    
+    return { success: true };
+  });
 
 const changePasswordServer = createServerFn({ method: "POST" })
   .inputValidator((input: { oldPass: string; newPass: string; email: string }) => input)
@@ -38,10 +88,38 @@ export const Route = createFileRoute("/dashboard/settings")({
 
 function Settings() {
   const { user } = Route.useRouteContext() as { user: any };
+  const router = useRouter();
+
+  const [profileName, setProfileName] = useState(user?.name || "");
+  const [profileEmail, setProfileEmail] = useState(user?.email || "");
+  const [profileUpdating, setProfileUpdating] = useState(false);
+
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [updating, setUpdating] = useState(false);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileName || !profileEmail) {
+      toast.error("Nama dan Email wajib diisi");
+      return;
+    }
+    setProfileUpdating(true);
+    try {
+      const res = await updateProfileServer({
+        data: { name: profileName, email: profileEmail, currentEmail: user.email }
+      });
+      if (res.success) {
+        toast.success("Profil berhasil diperbarui!");
+        await router.invalidate();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Gagal memperbarui profil");
+    } finally {
+      setProfileUpdating(false);
+    }
+  };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,8 +161,33 @@ function Settings() {
  
         <div className="mt-6 space-y-6">
           <Section title="Profil">
-            <Field label="Nama"><input defaultValue={user?.name || "Operator"} className="input" disabled /></Field>
-            <Field label="Email"><input defaultValue={user?.email || "operator@sisolo.link"} className="input" disabled /></Field>
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <Field label="Nama">
+                <input 
+                  type="text" 
+                  value={profileName} 
+                  onChange={(e) => setProfileName(e.target.value)} 
+                  className="input" 
+                  required 
+                />
+              </Field>
+              <Field label="Email">
+                <input 
+                  type="email" 
+                  value={profileEmail} 
+                  onChange={(e) => setProfileEmail(e.target.value)} 
+                  className="input" 
+                  required 
+                />
+              </Field>
+              <button 
+                type="submit" 
+                disabled={profileUpdating}
+                className="bg-primary px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90 cursor-pointer disabled:opacity-50"
+              >
+                {profileUpdating ? "Menyimpan..." : "Simpan Profil"}
+              </button>
+            </form>
           </Section>
 
           <Section title="Ruang Kerja">
