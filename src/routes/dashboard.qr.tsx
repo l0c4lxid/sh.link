@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const getSlugsServer = createServerFn({ method: "GET" })
   .inputValidator((user: { userId: string; role: string } | null) => user)
@@ -25,6 +26,40 @@ const getSlugsServer = createServerFn({ method: "GET" })
     return docs.map(doc => ({ slug: doc.slug, dest: doc.dest }));
   });
 
+function QRLoading() {
+  return (
+    <AppShell title="Kode QR">
+      <div className="px-5 py-6 lg:px-10 lg:py-10">
+        <div className="mb-6">
+          <Skeleton className="h-8 w-32 mb-2" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border border-border bg-card p-3">
+          <Skeleton className="h-8 flex-1" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-16" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="border border-border p-4 bg-card flex flex-col gap-3">
+              <div className="aspect-square bg-muted flex items-center justify-center p-2">
+                <Skeleton className="size-full max-w-[160px] max-h-[160px]" />
+              </div>
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-8 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
 export const Route = createFileRoute("/dashboard/qr")({
   head: () => ({ meta: [{ title: "Kode QR — Sisolo Link" }] }),
   loader: async ({ context }) => {
@@ -32,6 +67,7 @@ export const Route = createFileRoute("/dashboard/qr")({
     return await getSlugsServer({ data: user || null });
   },
   component: QR,
+  pendingComponent: () => <QRLoading />,
 });
 
 function QR() {

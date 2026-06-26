@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
+import { Skeleton } from "@/components/ui/skeleton";
 const getAnalyticsServer = createServerFn({ method: "GET" })
   .inputValidator((user: { userId: string; role: string } | null) => user)
   .handler(async ({ data: user }) => {
@@ -169,6 +170,50 @@ const getAnalyticsServer = createServerFn({ method: "GET" })
     };
   });
 
+function AnalyticsLoading() {
+  return (
+    <AppShell title="Analitik">
+      <div className="px-5 py-6 lg:px-10 lg:py-10">
+        <div className="mb-6">
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-3 w-56" />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="border border-border bg-card p-5">
+              <Skeleton className="h-3 w-24 mb-3" />
+              <Skeleton className="h-8 w-16 mb-2" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 border border-border bg-card p-5">
+          <Skeleton className="h-4 w-32 mb-4" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+
+        <div className="mt-6 grid gap-6 md:grid-cols-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="border border-border bg-card p-5">
+              <Skeleton className="h-4 w-32 mb-4" />
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((j) => (
+                  <div key={j} className="flex justify-between items-center">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-3.5 w-10" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
 export const Route = createFileRoute("/dashboard/analytics")({
   head: () => ({ meta: [{ title: "Analitik — Sisolo Link" }] }),
   loader: async ({ context }) => {
@@ -176,6 +221,7 @@ export const Route = createFileRoute("/dashboard/analytics")({
     return await getAnalyticsServer({ data: user || null });
   },
   component: Analytics,
+  pendingComponent: () => <AnalyticsLoading />,
 });
 
 function Analytics() {

@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { Filter, Search, Lock, Copy } from "lucide-react";
+import { Filter, Search, Lock, Copy, Check, X } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import QRCode from "qrcode";
 import {
   Dialog,
@@ -91,6 +92,127 @@ const deleteLinkServer = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+const updateLinkServer = createServerFn({ method: "POST" })
+  .inputValidator((input: { slug: string; dest: string; expiresAt?: string; password?: string; removePassword?: boolean }) => input)
+  .handler(async ({ data: input }) => {
+    const client = await clientPromise;
+    const db = client.db();
+    
+    let destination = input.dest.trim();
+    if (!/^https?:\/\//i.test(destination)) {
+      destination = `https://${destination}`;
+    }
+
+    const updateData: any = {
+      dest: destination,
+    };
+
+    if (input.expiresAt !== undefined) {
+      updateData.expiresAt = input.expiresAt ? new Date(input.expiresAt) : null;
+    }
+
+    if (input.removePassword) {
+      updateData.passwordHash = null;
+    } else if (input.password) {
+      const crypto = await import("crypto");
+      updateData.passwordHash = crypto.createHash("sha256").update(input.password).digest("hex");
+    }
+
+    await db.collection("links").updateOne(
+      { slug: input.slug.toLowerCase() },
+      { $set: updateData }
+    );
+
+    return { success: true };
+  });
+
+function CopyButton({ url, className }: { url: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success("Tautan disalin!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className={className || "mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-muted-foreground hover:text-primary cursor-pointer"}
+      title="Salin Tautan"
+    >
+      {copied ? (
+        <>
+          <Check className="size-3 text-success animate-fade-in" />
+          <span className="text-success animate-fade-in">Tersalin</span>
+        </>
+      ) : (
+        <>
+          <Copy className="size-3" />
+          <span>Salin</span>
+        </>
+      )}
+    </button>
+  );
+}
+
+function LinksLoading() {
+  return (
+    <AppShell title="Tautan Saya">
+      <div className="px-5 py-6 lg:px-10 lg:py-10">
+        <div className="mb-6">
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+
+        <div className="mb-5 flex gap-2">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+
+        {/* Desktop Skeleton Table */}
+        <div className="hidden border border-border md:block bg-card">
+          <div className="p-3 border-b border-border bg-muted flex gap-4">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <div className="divide-y divide-border">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="p-4 flex items-center gap-4">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Mobile Skeleton Cards */}
+        <div className="space-y-4 md:hidden">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border-b border-border pb-4 space-y-2">
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-6 w-12" />
+              </div>
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
 export const Route = createFileRoute("/dashboard/links")({
   head: () => ({ meta: [{ title: "Tautan Saya — Sisolo Link" }] }),
   validateSearch: (search: Record<string, unknown>): { q?: string } => {
@@ -105,6 +227,7 @@ export const Route = createFileRoute("/dashboard/links")({
     return { links, searchVal: deps.q || "" };
   },
   component: Links,
+  pendingComponent: () => <LinksLoading />,
 });
 
 function Links() {
@@ -113,6 +236,7 @@ function Links() {
   const [search, setSearch] = useState(searchVal);
   const [qrLink, setQrLink] = useState<{ slug: string; dest: string } | null>(null);
   const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
+  const [editLink, setEditLink] = useState<{ slug: string; dest: string; hasPassword?: boolean } | null>(null);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -186,17 +310,10 @@ function Links() {
                   <td className="p-3 text-muted-foreground font-mono text-[10px]">{l.creator}</td>
                   <td className="p-3 text-right font-bold">
                     <div>{l.clicks.toLocaleString()}</div>
-                    <button
-                      onClick={() => {
-                        const fullUrl = `${window.location.origin}/r/${l.slug}`;
-                        navigator.clipboard.writeText(fullUrl);
-                        toast.success("Tautan disalin!");
-                      }}
+                    <CopyButton
+                      url={`${window.location.origin}/r/${l.slug}`}
                       className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-muted-foreground hover:text-primary cursor-pointer justify-end w-full"
-                      title="Salin Tautan"
-                    >
-                      <Copy className="size-3" /> Salin
-                    </button>
+                    />
                   </td>
                   <td className="p-3">
                     {l.status === "active" ? (
@@ -208,7 +325,7 @@ function Links() {
                   <td className="p-3">
                     <div className="flex gap-3 text-[9px] font-bold uppercase tracking-widest">
                       <button onClick={() => setQrLink({ slug: l.slug, dest: l.dest })} className="hover:text-primary cursor-pointer">Salin & QR</button>
-                      <button className="text-muted-foreground opacity-40 cursor-not-allowed">Ubah</button>
+                      <button onClick={() => setEditLink({ slug: l.slug, dest: l.dest, hasPassword: l.hasPassword })} className="hover:text-primary cursor-pointer">Ubah</button>
                       <button onClick={() => setDeleteSlug(l.slug)} className="text-destructive hover:text-destructive/85 cursor-pointer">Hapus</button>
                     </div>
                   </td>
@@ -246,22 +363,12 @@ function Links() {
                 <div className="text-right flex flex-col items-end">
                   <div className="font-mono text-sm font-bold tracking-tighter">{l.clicks.toLocaleString()}</div>
                   <div className="font-mono text-[9px] uppercase tracking-tighter text-muted-foreground">Klik</div>
-                  <button
-                    onClick={() => {
-                      const fullUrl = `${window.location.origin}/r/${l.slug}`;
-                      navigator.clipboard.writeText(fullUrl);
-                      toast.success("Tautan disalin!");
-                    }}
-                    className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-muted-foreground hover:text-primary cursor-pointer"
-                    title="Salin Tautan"
-                  >
-                    <Copy className="size-3" /> Salin
-                  </button>
+                  <CopyButton url={`${window.location.origin}/r/${l.slug}`} />
                 </div>
               </div>
               <div className="mt-3 flex gap-3">
                 <button onClick={() => setQrLink({ slug: l.slug, dest: l.dest })} className="font-mono text-[9px] font-bold uppercase tracking-widest hover:text-primary cursor-pointer">Salin & QR</button>
-                <button className="font-mono text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-40 cursor-not-allowed">Ubah</button>
+                <button onClick={() => setEditLink({ slug: l.slug, dest: l.dest, hasPassword: l.hasPassword })} className="font-mono text-[9px] font-bold uppercase tracking-widest hover:text-primary cursor-pointer">Ubah</button>
                 <button onClick={() => setDeleteSlug(l.slug)} className="font-mono text-[9px] font-bold uppercase tracking-widest text-destructive hover:text-destructive/85 cursor-pointer">Hapus</button>
               </div>
             </div>
@@ -275,6 +382,7 @@ function Links() {
       </div>
 
       <QRDetailModal link={qrLink} onClose={() => setQrLink(null)} />
+      <EditLinkModal link={editLink} onClose={() => setEditLink(null)} onUpdated={() => navigate({ search: { q: search } })} />
       <DeleteConfirmModal slug={deleteSlug} onClose={() => setDeleteSlug(null)} onConfirm={confirmDelete} />
     </AppShell>
   );
@@ -427,5 +535,148 @@ function DeleteConfirmModal({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function EditLinkModal({
+  link,
+  onClose,
+  onUpdated,
+}: {
+  link: { slug: string; dest: string; hasPassword?: boolean } | null;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const [dest, setDest] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [pwd, setPwd] = useState(false);
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (link) {
+      setDest(link.dest);
+      setExpiresAt("");
+      setPwd(!!link.hasPassword);
+      setPassword("");
+    }
+  }, [link]);
+
+  if (!link) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dest) {
+      toast.error("Silakan masukkan URL tujuan");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateLinkServer({
+        data: {
+          slug: link.slug,
+          dest,
+          expiresAt: expiresAt || undefined,
+          password: pwd && password ? password : undefined,
+          removePassword: !pwd && link.hasPassword,
+        }
+      });
+      toast.success("Tautan singkat berhasil diperbarui!");
+      onUpdated();
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || "Gagal memperbarui tautan singkat");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!link} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="border-border bg-background font-mono sm:max-w-md relative">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 focus:outline-none cursor-pointer"
+          aria-label="Close"
+        >
+          <X className="size-4" />
+        </button>
+        <DialogHeader>
+          <DialogTitle className="text-lg font-bold uppercase tracking-tight">Ubah Tautan</DialogTitle>
+          <DialogDescription className="text-[10px] text-muted-foreground uppercase">
+            Mengedit slug: /{link.slug}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4 mt-2 text-xs">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase text-muted-foreground">URL Tujuan</label>
+            <input
+              type="text"
+              value={dest}
+              onChange={(e) => setDest(e.target.value)}
+              placeholder="contoh: marketing.co/campaign"
+              className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none"
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase text-muted-foreground">Kedaluwarsa Baru (opsional)</label>
+            <input
+              type="date"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPwd((v) => !v)}
+            className="flex w-full items-center justify-between border-y border-border py-3"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex size-3.5 items-center justify-center border border-foreground">
+                {pwd && <div className="size-2 bg-primary" />}
+              </div>
+              <span className="font-mono text-[9px] font-bold uppercase">Proteksi Kata Sandi</span>
+            </div>
+            <span className="font-mono text-[9px] text-muted-foreground">{pwd ? "AKTIF" : "NONAKTIF"}</span>
+          </button>
+
+          {pwd && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground">Kata Sandi Baru (kosongkan jika tidak diubah)</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Masukkan kata sandi baru"
+                className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-2 border-t border-border pt-4 mt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 border border-border bg-card px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest hover:bg-secondary cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-grow bg-primary px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-primary-foreground hover:opacity-90 cursor-pointer"
+            >
+              {loading ? "Menyimpan..." : "Simpan Perubahan"}
+            </button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

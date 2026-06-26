@@ -5,6 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 import clientPromise from "@/lib/mongodb";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -115,6 +116,37 @@ const setPrimaryDomainServer = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+function DomainsLoading() {
+  return (
+    <AppShell title="Domain">
+      <div className="px-5 py-6 lg:px-10 lg:py-10">
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <Skeleton className="h-8 w-32 mb-2" />
+            <Skeleton className="h-3 w-56" />
+          </div>
+          <Skeleton className="h-9 w-36" />
+        </div>
+
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="border border-border bg-card p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="size-8 rounded-full" />
+                <div>
+                  <Skeleton className="h-4 w-32 mb-2" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-16" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
 export const Route = createFileRoute("/dashboard/domains")({
   head: () => ({ meta: [{ title: "Domain — Sisolo Link" }] }),
   loader: async ({ context }) => {
@@ -122,6 +154,7 @@ export const Route = createFileRoute("/dashboard/domains")({
     return await getDomainsServer({ data: user || null });
   },
   component: Domains,
+  pendingComponent: () => <DomainsLoading />,
 });
 
 function Domains() {
