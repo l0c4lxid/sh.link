@@ -53,16 +53,6 @@ const getDashboardStatsServer = createServerFn({ method: "GET" })
       });
     });
 
-    // Simulasi grafik jika kosong untuk demo
-    const totalHistClicks = Object.values(historyMap).reduce((a, b) => a + b, 0);
-    if (totalHistClicks === 0 && totalClicks > 0) {
-      let temp = totalClicks;
-      Object.keys(historyMap).forEach(key => {
-        const simulated = Math.round(temp / 10 * (0.8 + Math.random() * 0.4));
-        historyMap[key] = simulated;
-      });
-    }
-
     const chartData = Object.entries(historyMap).map(([date, count]) => ({
       date,
       count

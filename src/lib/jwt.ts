@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const JWT_SECRET = process.env.API_KEY || "al-sOtfLYZohz_ClsGebVD38Ni85mUzR_jHHov8FRwlufJ";
+const JWT_SECRET = process.env.JWT_SECRET || "sisolo-jwt-secret-secure-key-2026";
 
 export function signJwt(payload: object): string {
   const header = { alg: "HS256", typ: "JWT" };
