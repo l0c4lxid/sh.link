@@ -204,7 +204,7 @@ function Auth() {
                 type="email" 
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
-                placeholder="contoh: test@admin.com" 
+                placeholder="contoh: nama@email.com" 
                 className="input" 
                 required 
               />
@@ -239,13 +239,7 @@ function Auth() {
             </button>
           </div>
 
-          {!isRegister && (
-            <div className="mt-8 border-t border-border pt-4 font-mono text-[10px] text-muted-foreground leading-relaxed">
-              <p className="font-bold uppercase text-foreground mb-1">AKUN UJI COBA:</p>
-              <p>🔑 Admin: <span className="text-foreground font-bold">test@admin.com</span> / Password: <span className="text-foreground font-bold">admin</span></p>
-              <p>🔑 User: <span className="text-foreground font-bold">test@user.com</span> / Password: <span className="text-foreground font-bold">user</span></p>
-            </div>
-          )}
+
         </div>
       </main>
 
