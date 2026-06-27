@@ -11,7 +11,6 @@ const nav = [
   { to: "/dashboard/links", label: "Tautan Saya", icon: Link2 },
   { to: "/dashboard/analytics", label: "Analitik", icon: BarChart3 },
   { to: "/dashboard/domains", label: "Domain", icon: Globe },
-  { to: "/dashboard/qr", label: "Kode QR", icon: QrCode },
   { to: "/dashboard/admin", label: "Admin", icon: ShieldCheck },
   { to: "/dashboard/settings", label: "Pengaturan", icon: Settings },
 ];

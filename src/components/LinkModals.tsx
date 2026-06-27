@@ -5,6 +5,7 @@ import clientPromise from "@/lib/mongodb";
 import { toast } from "sonner";
 import QRCode from "qrcode";
 import { encryptPassword, decryptPassword } from "@/lib/encryption";
+import { getUserDomainsServer } from "./CreateLinkSheet";
 import {
   Dialog,
   DialogContent,
@@ -24,18 +25,42 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export const updateLinkServer = createServerFn({ method: "POST" })
-  .inputValidator((input: { slug: string; dest: string; expiresAt?: string; password?: string; removePassword?: boolean }) => input)
+  .inputValidator((input: {
+    originalSlug: string;
+    slug: string;
+    dest: string;
+    domain: string;
+    expiresAt?: string;
+    password?: string;
+    removePassword?: boolean;
+  }) => input)
   .handler(async ({ data: input }) => {
     const client = await clientPromise;
     const db = client.db();
     
+    const originalSlug = input.originalSlug.toLowerCase().trim();
+    const newSlug = input.slug.toLowerCase().trim().replace(/[^a-z0-9-_]/g, "");
+
+    if (!newSlug) {
+      throw new Error("Slug tidak boleh kosong.");
+    }
+
+    if (newSlug !== originalSlug) {
+      const existing = await db.collection("links").findOne({ slug: newSlug });
+      if (existing) {
+        throw new Error(`Slug "/${newSlug}" sudah digunakan.`);
+      }
+    }
+
     let destination = input.dest.trim();
     if (!/^https?:\/\//i.test(destination)) {
       destination = `https://${destination}`;
     }
 
     const updateData: any = {
+      slug: newSlug,
       dest: destination,
+      domain: input.domain,
     };
 
     if (input.expiresAt !== undefined) {
@@ -49,7 +74,7 @@ export const updateLinkServer = createServerFn({ method: "POST" })
     }
 
     await db.collection("links").updateOne(
-      { slug: input.slug.toLowerCase() },
+      { slug: originalSlug },
       { $set: updateData }
     );
 
@@ -250,33 +275,47 @@ export function DeleteConfirmModal({
 
 export function EditLinkModal({
   link,
+  userId,
   onClose,
   onUpdated,
 }: {
-  link: { slug: string; dest: string; hasPassword?: boolean } | null;
+  link: { slug: string; dest: string; domain: string; hasPassword?: boolean } | null;
+  userId: string | null;
   onClose: () => void;
   onUpdated: () => void;
 }) {
   const [dest, setDest] = useState("");
+  const [domain, setDomain] = useState("sisolo.my.id");
+  const [slug, setSlug] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [pwd, setPwd] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [availableDomains, setAvailableDomains] = useState<string[]>(["sisolo.my.id"]);
 
   useEffect(() => {
     if (link) {
       setDest(link.dest);
+      setDomain(link.domain || "sisolo.my.id");
+      setSlug(link.slug);
       setExpiresAt("");
       setPwd(!!link.hasPassword);
       setPassword("");
+      
+      getUserDomainsServer({ data: userId || null }).then((domains) => {
+        if (domains && domains.length > 0) {
+          setAvailableDomains(domains);
+        }
+      });
+
       if (link.hasPassword) {
         getLinkPasswordServer({ data: link.slug }).then((p) => {
           if (p) setPassword(p);
         });
       }
     }
-  }, [link]);
+  }, [link, userId]);
 
   if (!link) return null;
 
@@ -286,12 +325,18 @@ export function EditLinkModal({
       toast.error("Silakan masukkan URL tujuan");
       return;
     }
+    if (!slug) {
+      toast.error("Silakan masukkan slug");
+      return;
+    }
 
     setLoading(true);
     try {
       await updateLinkServer({
         data: {
-          slug: link.slug,
+          originalSlug: link.slug,
+          slug,
+          domain,
           dest,
           expiresAt: expiresAt || undefined,
           password: pwd && password ? password : undefined,
@@ -320,6 +365,38 @@ export function EditLinkModal({
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-2 text-xs">
           <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase text-muted-foreground">Domain</label>
+            <select
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              className="w-full border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none cursor-pointer"
+            >
+              {availableDomains.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase text-muted-foreground">Slug Tautan</label>
+            <div className="flex">
+              <span className="inline-flex items-center border border-r-0 border-border bg-muted px-3 font-mono text-xs text-muted-foreground select-none">
+                {domain}/r/
+              </span>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="slug-kustom"
+                className="flex-1 border border-border bg-background px-3 py-3 font-mono text-xs focus:border-primary focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase text-muted-foreground">URL Tujuan</label>
             <input
               type="text"
@@ -344,7 +421,7 @@ export function EditLinkModal({
           <button
             type="button"
             onClick={() => setPwd((v) => !v)}
-            className="flex w-full items-center justify-between border-y border-border py-3"
+            className="flex w-full items-center justify-between border-y border-border py-3 cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <div className="flex size-3.5 items-center justify-center border border-foreground">

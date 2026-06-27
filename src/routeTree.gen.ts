@@ -15,7 +15,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as RSlugRouteImport } from './routes/r.$slug'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
-import { Route as DashboardQrRouteImport } from './routes/dashboard.qr'
 import { Route as DashboardLinksRouteImport } from './routes/dashboard.links'
 import { Route as DashboardDomainsRouteImport } from './routes/dashboard.domains'
 import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard.analytics'
@@ -51,11 +50,6 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashboardRoute,
 } as any)
-const DashboardQrRoute = DashboardQrRouteImport.update({
-  id: '/qr',
-  path: '/qr',
-  getParentRoute: () => DashboardRoute,
-} as any)
 const DashboardLinksRoute = DashboardLinksRouteImport.update({
   id: '/links',
   path: '/links',
@@ -85,7 +79,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/links': typeof DashboardLinksRoute
-  '/dashboard/qr': typeof DashboardQrRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/r/$slug': typeof RSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -97,7 +90,6 @@ export interface FileRoutesByTo {
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/links': typeof DashboardLinksRoute
-  '/dashboard/qr': typeof DashboardQrRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/r/$slug': typeof RSlugRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -111,7 +103,6 @@ export interface FileRoutesById {
   '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/links': typeof DashboardLinksRoute
-  '/dashboard/qr': typeof DashboardQrRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/r/$slug': typeof RSlugRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -126,7 +117,6 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/domains'
     | '/dashboard/links'
-    | '/dashboard/qr'
     | '/dashboard/settings'
     | '/r/$slug'
     | '/dashboard/'
@@ -138,7 +128,6 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/domains'
     | '/dashboard/links'
-    | '/dashboard/qr'
     | '/dashboard/settings'
     | '/r/$slug'
     | '/dashboard'
@@ -151,7 +140,6 @@ export interface FileRouteTypes {
     | '/dashboard/analytics'
     | '/dashboard/domains'
     | '/dashboard/links'
-    | '/dashboard/qr'
     | '/dashboard/settings'
     | '/r/$slug'
     | '/dashboard/'
@@ -208,13 +196,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsRouteImport
       parentRoute: typeof DashboardRoute
     }
-    '/dashboard/qr': {
-      id: '/dashboard/qr'
-      path: '/qr'
-      fullPath: '/dashboard/qr'
-      preLoaderRoute: typeof DashboardQrRouteImport
-      parentRoute: typeof DashboardRoute
-    }
     '/dashboard/links': {
       id: '/dashboard/links'
       path: '/links'
@@ -251,7 +232,6 @@ interface DashboardRouteChildren {
   DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
   DashboardDomainsRoute: typeof DashboardDomainsRoute
   DashboardLinksRoute: typeof DashboardLinksRoute
-  DashboardQrRoute: typeof DashboardQrRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -261,7 +241,6 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAnalyticsRoute: DashboardAnalyticsRoute,
   DashboardDomainsRoute: DashboardDomainsRoute,
   DashboardLinksRoute: DashboardLinksRoute,
-  DashboardQrRoute: DashboardQrRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }

@@ -66,7 +66,7 @@ const createLinkServer = createServerFn({ method: "POST" })
     return { success: true, slug };
   });
 
-const getUserDomainsServer = createServerFn({ method: "GET" })
+export const getUserDomainsServer = createServerFn({ method: "GET" })
   .inputValidator((userId: string | null) => userId)
   .handler(async ({ data: userId }) => {
     const client = await clientPromise;
