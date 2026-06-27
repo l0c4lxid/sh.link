@@ -455,7 +455,7 @@ function Links() {
         {/* Content Section */}
         {layout === "qr" ? (
           /* Tampilan QR Code Layout */
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-5 lg:grid-cols-5">
             {paginatedLinks.map((l) => (
               <QRCodeCard
                 key={l.slug}
@@ -477,6 +477,7 @@ function Links() {
               <table className="w-full font-mono text-xs">
                 <thead className="bg-muted">
                   <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <th className="p-3 font-bold w-12 text-center">No</th>
                     <th className="p-3 font-bold">Slug</th>
                     <th className="p-3 font-bold">Tujuan</th>
                     <th className="p-3 font-bold">Domain</th>
@@ -487,8 +488,11 @@ function Links() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedLinks.map((l) => (
+                  {paginatedLinks.map((l, index) => (
                     <tr key={l.slug} className="border-t border-border">
+                      <td className="p-3 text-center text-muted-foreground select-none font-bold">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
                       <td className="p-3 font-bold text-primary">
                         <div className="flex items-center gap-1.5">
                           <span>/{l.slug}</span>
@@ -523,7 +527,7 @@ function Links() {
                   ))}
                   {paginatedLinks.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-8 text-center text-muted-foreground font-mono">
+                      <td colSpan={8} className="p-8 text-center text-muted-foreground font-mono">
                         Tidak ada tautan yang cocok dengan pencarian Anda.
                       </td>
                     </tr>
